@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Voice Changer</string>
+    <string name="subtitle">שנה את קולך בזמן אמת</string>
+    <string name="effect_normal">רגיל</string>
+    <string name="effect_chipmunk">נמייה</string>
+    <string name="effect_deep">עמוק</string>
+    <string name="effect_robot">רובוט</string>
+    <string name="effect_echo">הד</string>
+    <string name="btn_start">התחל</string>
+    <string name="btn_stop">עצור</string>
+    <string name="status_idle">לחץ התחל להפעלה</string>
+    <string name="status_active">פעיל — מעבד קול...</string>
+    <string name="permission_required">נדרשת הרשאת מיקרופון</string>
+</resources>
