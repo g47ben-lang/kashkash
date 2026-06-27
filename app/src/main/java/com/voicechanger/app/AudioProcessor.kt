@@ -1,11 +1,14 @@
 package com.voicechanger.app
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import com.voicechanger.app.effects.EchoEffect
 import com.voicechanger.app.effects.PitchShifter
@@ -15,7 +18,7 @@ enum class VoiceEffect {
     NORMAL, CHIPMUNK, DEEP_VOICE, ROBOT, ECHO
 }
 
-class AudioProcessor {
+class AudioProcessor(private val context: Context) {
 
     private val sampleRate = 44100
     private val channelIn = AudioFormat.CHANNEL_IN_MONO
@@ -27,6 +30,8 @@ class AudioProcessor {
 
     private var audioRecord: AudioRecord? = null
     private var audioTrack: AudioTrack? = null
+    private var echoCanceler: AcousticEchoCanceler? = null
+    private var noiseSuppressor: NoiseSuppressor? = null
 
     @Volatile var currentEffect: VoiceEffect = VoiceEffect.NORMAL
     @Volatile var intensity: Float = 1.0f
@@ -36,17 +41,30 @@ class AudioProcessor {
         if (running) return
         running = true
 
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        // MODE_IN_COMMUNICATION enables hardware AEC and routes audio to earpiece/BT
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.VOICE_COMMUNICATION,
             sampleRate, channelIn, encoding, bufferSize
         )
 
-        // AudioTrack.Builder requires API 21; use legacy constructor on older devices
+        // Attach hardware echo canceler and noise suppressor if available (API 16+)
+        val sessionId = audioRecord!!.audioSessionId
+        if (AcousticEchoCanceler.isAvailable()) {
+            echoCanceler = AcousticEchoCanceler.create(sessionId)?.also { it.enabled = true }
+        }
+        if (NoiseSuppressor.isAvailable()) {
+            noiseSuppressor = NoiseSuppressor.create(sessionId)?.also { it.enabled = true }
+        }
+
         audioTrack = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        // USAGE_VOICE_COMMUNICATION routes to earpiece/BT and pairs with AEC
+                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                         .build()
                 )
@@ -62,7 +80,7 @@ class AudioProcessor {
                 .build()
         } else {
             @Suppress("DEPRECATION")
-            AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, channelOut, encoding, bufferSize, AudioTrack.MODE_STREAM)
+            AudioTrack(AudioManager.STREAM_VOICE_CALL, sampleRate, channelOut, encoding, bufferSize, AudioTrack.MODE_STREAM)
         }
 
         audioRecord?.startRecording()
@@ -86,12 +104,17 @@ class AudioProcessor {
 
     fun stop() {
         running = false
+        echoCanceler?.release(); echoCanceler = null
+        noiseSuppressor?.release(); noiseSuppressor = null
         try { audioRecord?.stop(); audioRecord?.release() } catch (_: Exception) {}
         try { audioTrack?.stop(); audioTrack?.release() } catch (_: Exception) {}
         audioRecord = null
         audioTrack = null
         EchoEffect.reset()
         RobotEffect.reset()
+
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.mode = AudioManager.MODE_NORMAL
     }
 
     private fun applyEffect(input: ShortArray): ShortArray = when (currentEffect) {

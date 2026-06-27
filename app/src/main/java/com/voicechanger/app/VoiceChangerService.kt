@@ -14,7 +14,7 @@ import androidx.core.app.NotificationCompat
 class VoiceChangerService : Service() {
 
     private val binder = LocalBinder()
-    val audioProcessor = AudioProcessor()
+    val audioProcessor by lazy { AudioProcessor(this) }
 
     inner class LocalBinder : Binder() {
         fun getService(): VoiceChangerService = this@VoiceChangerService
