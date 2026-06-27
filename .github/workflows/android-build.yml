@@ -1,0 +1,113 @@
+name: Android Build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+  # מאפשר הרצה ידנית מלשונית Actions עם בחירת פרמטרים
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'סוג בנייה'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+      version_name:
+        description: 'גרסה (למשל 1.2.0)'
+        required: false
+        default: ''
+      version_code:
+        description: 'קוד גרסה (מספר שלם)'
+        required: false
+        default: ''
+      min_sdk:
+        description: 'גרסת אנדרואיד מינימלית (minSdk)'
+        required: false
+        default: ''
+      run_tests:
+        description: 'הרץ טסטים'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+        working-directory: ${{ github.workspace }}
+
+      # דריסת משתנים אם הוגדרו ידנית ב-workflow_dispatch
+      - name: Override build variables (manual run only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          PROPS_FILE="gradle.properties"
+          if [ -n "${{ github.event.inputs.version_name }}" ]; then
+            sed -i "s/^APP_VERSION_NAME=.*/APP_VERSION_NAME=${{ github.event.inputs.version_name }}/" $PROPS_FILE
+          fi
+          if [ -n "${{ github.event.inputs.version_code }}" ]; then
+            sed -i "s/^APP_VERSION_CODE=.*/APP_VERSION_CODE=${{ github.event.inputs.version_code }}/" $PROPS_FILE
+          fi
+          if [ -n "${{ github.event.inputs.min_sdk }}" ]; then
+            sed -i "s/^APP_MIN_SDK=.*/APP_MIN_SDK=${{ github.event.inputs.min_sdk }}/" $PROPS_FILE
+          fi
+          echo "--- gradle.properties after override ---"
+          cat $PROPS_FILE
+
+      - name: Run unit tests
+        if: github.event.inputs.run_tests != 'false'
+        run: ./gradlew test
+
+      - name: Build Debug APK
+        if: github.event.inputs.build_type != 'release'
+        run: ./gradlew assembleDebug
+
+      - name: Build Release APK
+        if: github.event.inputs.build_type == 'release'
+        run: ./gradlew assembleRelease
+
+      - name: Upload Debug APK
+        if: github.event.inputs.build_type != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-changer-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      - name: Upload Release APK
+        if: github.event.inputs.build_type == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-changer-release-${{ github.run_number }}
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 30

@@ -4,23 +4,29 @@ plugins {
 }
 
 android {
-    namespace 'com.voicechanger.app'
-    compileSdk 34
+    namespace project.property('APP_ID')
+    compileSdk project.property('APP_COMPILE_SDK').toInteger()
 
     defaultConfig {
-        applicationId "com.voicechanger.app"
-        minSdk 21
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        applicationId project.property('APP_ID')
+        minSdk        project.property('APP_MIN_SDK').toInteger()
+        targetSdk     project.property('APP_TARGET_SDK').toInteger()
+        versionCode   project.property('APP_VERSION_CODE').toInteger()
+        versionName   project.property('APP_VERSION_NAME')
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            debuggable true
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
