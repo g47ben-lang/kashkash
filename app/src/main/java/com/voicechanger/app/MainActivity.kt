@@ -26,6 +26,9 @@ class MainActivity : AppCompatActivity() {
     private var isRunning = false
     private var selectedEffect = VoiceEffect.NORMAL
 
+    // Standalone AudioProcessor used only for previews (no service needed)
+    private val previewProcessor: AudioProcessor by lazy { AudioProcessor(this) }
+
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             voiceService = (binder as VoiceChangerService.LocalBinder).getService()
@@ -40,7 +43,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_PERMISSIONS = 100
-        // SeekBar: 0-18 maps to intensity 0.2-2.0 (step 0.1)
         private fun seekbarToIntensity(progress: Int): Float = 0.2f + progress * 0.1f
     }
 
@@ -50,42 +52,74 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupEffectCards()
+        setupPreviewButtons()
         setupStartStopButton()
         setupSeekBar()
         selectEffect(VoiceEffect.NORMAL)
     }
 
     private fun setupEffectCards() {
-        binding.cardNormal.setOnClickListener   { selectEffect(VoiceEffect.NORMAL) }
-        binding.cardChipmunk.setOnClickListener { selectEffect(VoiceEffect.CHIPMUNK) }
-        binding.cardDeep.setOnClickListener     { selectEffect(VoiceEffect.DEEP_VOICE) }
-        binding.cardRobot.setOnClickListener    { selectEffect(VoiceEffect.ROBOT) }
-        binding.cardEcho.setOnClickListener     { selectEffect(VoiceEffect.ECHO) }
+        binding.cardNormal.setOnClickListener    { selectEffect(VoiceEffect.NORMAL) }
+        binding.cardChipmunk.setOnClickListener  { selectEffect(VoiceEffect.CHIPMUNK) }
+        binding.cardDeep.setOnClickListener      { selectEffect(VoiceEffect.DEEP_VOICE) }
+        binding.cardRobot.setOnClickListener     { selectEffect(VoiceEffect.ROBOT) }
+        binding.cardEcho.setOnClickListener      { selectEffect(VoiceEffect.ECHO) }
+        binding.cardChild.setOnClickListener     { selectEffect(VoiceEffect.CHILD) }
+        binding.cardBibi.setOnClickListener      { selectEffect(VoiceEffect.BIBI) }
+        binding.cardTrump.setOnClickListener     { selectEffect(VoiceEffect.TRUMP) }
+        binding.cardOldMan.setOnClickListener    { selectEffect(VoiceEffect.OLD_MAN) }
+        binding.cardTelephone.setOnClickListener { selectEffect(VoiceEffect.TELEPHONE) }
+    }
+
+    private fun setupPreviewButtons() {
+        binding.previewNormal.setOnClickListener    { previewProcessor.preview(VoiceEffect.NORMAL) }
+        binding.previewChipmunk.setOnClickListener  { previewProcessor.preview(VoiceEffect.CHIPMUNK) }
+        binding.previewDeep.setOnClickListener      { previewProcessor.preview(VoiceEffect.DEEP_VOICE) }
+        binding.previewRobot.setOnClickListener     { previewProcessor.preview(VoiceEffect.ROBOT) }
+        binding.previewEcho.setOnClickListener      { previewProcessor.preview(VoiceEffect.ECHO) }
+        binding.previewChild.setOnClickListener     { previewProcessor.preview(VoiceEffect.CHILD) }
+        binding.previewBibi.setOnClickListener      { previewProcessor.preview(VoiceEffect.BIBI) }
+        binding.previewTrump.setOnClickListener     { previewProcessor.preview(VoiceEffect.TRUMP) }
+        binding.previewOldMan.setOnClickListener    { previewProcessor.preview(VoiceEffect.OLD_MAN) }
+        binding.previewTelephone.setOnClickListener { previewProcessor.preview(VoiceEffect.TELEPHONE) }
     }
 
     private fun selectEffect(effect: VoiceEffect) {
         selectedEffect = effect
         voiceService?.audioProcessor?.currentEffect = effect
 
-        val allCards = listOf(binding.cardNormal, binding.cardChipmunk, binding.cardDeep,
-                              binding.cardRobot, binding.cardEcho)
+        val allCards = listOf(
+            binding.cardNormal, binding.cardChipmunk, binding.cardDeep,
+            binding.cardRobot, binding.cardEcho, binding.cardChild,
+            binding.cardBibi, binding.cardTrump, binding.cardOldMan, binding.cardTelephone
+        )
         allCards.forEach { it.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_bg)) }
 
         val selected: CardView = when (effect) {
-            VoiceEffect.NORMAL    -> binding.cardNormal
-            VoiceEffect.CHIPMUNK  -> binding.cardChipmunk
+            VoiceEffect.NORMAL     -> binding.cardNormal
+            VoiceEffect.CHIPMUNK   -> binding.cardChipmunk
             VoiceEffect.DEEP_VOICE -> binding.cardDeep
-            VoiceEffect.ROBOT     -> binding.cardRobot
-            VoiceEffect.ECHO      -> binding.cardEcho
+            VoiceEffect.ROBOT      -> binding.cardRobot
+            VoiceEffect.ECHO       -> binding.cardEcho
+            VoiceEffect.CHILD      -> binding.cardChild
+            VoiceEffect.BIBI       -> binding.cardBibi
+            VoiceEffect.TRUMP      -> binding.cardTrump
+            VoiceEffect.OLD_MAN    -> binding.cardOldMan
+            VoiceEffect.TELEPHONE  -> binding.cardTelephone
         }
         selected.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_selected))
 
         binding.tvSelectedEffect.text = "אפקט: ${when (effect) {
-            VoiceEffect.NORMAL    -> "רגיל"
-            VoiceEffect.CHIPMUNK  -> "נמייה"
+            VoiceEffect.NORMAL     -> "רגיל"
+            VoiceEffect.CHIPMUNK   -> "נמייה"
             VoiceEffect.DEEP_VOICE -> "קול עמוק"
-            VoiceEffect.ROBOT     -> "רובוט"
-            VoiceEffect.ECHO      -> "הד"
+            VoiceEffect.ROBOT      -> "רובוט"
+            VoiceEffect.ECHO       -> "הד"
+            VoiceEffect.CHILD      -> "ילד"
+            VoiceEffect.BIBI       -> "ביבי"
+            VoiceEffect.TRUMP      -> "טראמפ"
+            VoiceEffect.OLD_MAN    -> "זקן"
+            VoiceEffect.TELEPHONE  -> "טלפון"
         }}"
     }
 
@@ -100,7 +134,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupSeekBar() {
         binding.seekbarIntensity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                voiceService?.audioProcessor?.intensity = seekbarToIntensity(progress)
+                val intensity = seekbarToIntensity(progress)
+                voiceService?.audioProcessor?.intensity = intensity
+                previewProcessor.intensity = intensity
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
