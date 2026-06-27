@@ -43,7 +43,7 @@
                 android:layout_width="0dp"
                 android:layout_height="100dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
+                android:layout_marginRight="6dp"
                 app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
@@ -62,7 +62,7 @@
                 android:layout_width="0dp"
                 android:layout_height="100dp"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
+                android:layout_marginLeft="6dp"
                 app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
@@ -90,7 +90,7 @@
                 android:layout_width="0dp"
                 android:layout_height="100dp"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
+                android:layout_marginRight="6dp"
                 app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
@@ -109,7 +109,7 @@
                 android:layout_width="0dp"
                 android:layout_height="100dp"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
+                android:layout_marginLeft="6dp"
                 app:cardBackgroundColor="@color/card_bg"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
@@ -163,7 +163,7 @@
             android:gravity="center"
             android:paddingBottom="8dp"/>
 
-        <!-- Intensity SeekBar (replaces Material Slider - works from API 1) -->
+        <!-- Intensity SeekBar -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -179,7 +179,8 @@
             android:layout_height="wrap_content"
             android:max="18"
             android:progress="8"
-            android:layout_marginHorizontal="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
             android:layout_marginBottom="24dp"/>
 
         <!-- Start/Stop button -->
@@ -192,7 +193,8 @@
             android:textStyle="bold"
             android:textColor="@color/white"
             android:backgroundTint="@color/start_green"
-            android:layout_marginHorizontal="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
             android:layout_marginBottom="16dp"/>
 
         <!-- Status -->
