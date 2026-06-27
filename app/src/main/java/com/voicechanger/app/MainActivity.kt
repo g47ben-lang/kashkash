@@ -9,12 +9,12 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.slider.Slider
 import com.voicechanger.app.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -28,8 +28,7 @@ class MainActivity : AppCompatActivity() {
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            val localBinder = binder as VoiceChangerService.LocalBinder
-            voiceService = localBinder.getService()
+            voiceService = (binder as VoiceChangerService.LocalBinder).getService()
             isBound = true
             voiceService?.audioProcessor?.currentEffect = selectedEffect
         }
@@ -41,6 +40,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_PERMISSIONS = 100
+        // SeekBar: 0-18 maps to intensity 0.2-2.0 (step 0.1)
+        private fun seekbarToIntensity(progress: Int): Float = 0.2f + progress * 0.1f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,74 +51,60 @@ class MainActivity : AppCompatActivity() {
 
         setupEffectCards()
         setupStartStopButton()
-        setupSlider()
+        setupSeekBar()
         selectEffect(VoiceEffect.NORMAL)
     }
 
     private fun setupEffectCards() {
-        binding.cardNormal.setOnClickListener { selectEffect(VoiceEffect.NORMAL) }
+        binding.cardNormal.setOnClickListener   { selectEffect(VoiceEffect.NORMAL) }
         binding.cardChipmunk.setOnClickListener { selectEffect(VoiceEffect.CHIPMUNK) }
-        binding.cardDeep.setOnClickListener { selectEffect(VoiceEffect.DEEP_VOICE) }
-        binding.cardRobot.setOnClickListener { selectEffect(VoiceEffect.ROBOT) }
-        binding.cardEcho.setOnClickListener { selectEffect(VoiceEffect.ECHO) }
+        binding.cardDeep.setOnClickListener     { selectEffect(VoiceEffect.DEEP_VOICE) }
+        binding.cardRobot.setOnClickListener    { selectEffect(VoiceEffect.ROBOT) }
+        binding.cardEcho.setOnClickListener     { selectEffect(VoiceEffect.ECHO) }
     }
 
     private fun selectEffect(effect: VoiceEffect) {
         selectedEffect = effect
         voiceService?.audioProcessor?.currentEffect = effect
 
-        // Reset all cards to default stroke
-        val cards = listOf(
-            binding.cardNormal,
-            binding.cardChipmunk,
-            binding.cardDeep,
-            binding.cardRobot,
-            binding.cardEcho
-        )
-        cards.forEach { card ->
-            card.strokeWidth = 0
-            card.strokeColor = ContextCompat.getColor(this, R.color.card_stroke_default)
-        }
+        val allCards = listOf(binding.cardNormal, binding.cardChipmunk, binding.cardDeep,
+                              binding.cardRobot, binding.cardEcho)
+        allCards.forEach { it.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_bg)) }
 
-        // Highlight selected card
-        val selectedCard: MaterialCardView = when (effect) {
-            VoiceEffect.NORMAL -> binding.cardNormal
-            VoiceEffect.CHIPMUNK -> binding.cardChipmunk
+        val selected: CardView = when (effect) {
+            VoiceEffect.NORMAL    -> binding.cardNormal
+            VoiceEffect.CHIPMUNK  -> binding.cardChipmunk
             VoiceEffect.DEEP_VOICE -> binding.cardDeep
-            VoiceEffect.ROBOT -> binding.cardRobot
-            VoiceEffect.ECHO -> binding.cardEcho
+            VoiceEffect.ROBOT     -> binding.cardRobot
+            VoiceEffect.ECHO      -> binding.cardEcho
         }
-        selectedCard.strokeWidth = 6
-        selectedCard.strokeColor = ContextCompat.getColor(this, R.color.purple_500)
+        selected.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_selected))
 
-        val effectName = when (effect) {
-            VoiceEffect.NORMAL -> "רגיל"
-            VoiceEffect.CHIPMUNK -> "נמייה"
-            VoiceEffect.DEEP_VOICE -> "עמוק"
-            VoiceEffect.ROBOT -> "רובוט"
-            VoiceEffect.ECHO -> "הד"
-        }
-        binding.tvSelectedEffect.text = "אפקט: $effectName"
+        binding.tvSelectedEffect.text = "אפקט: ${when (effect) {
+            VoiceEffect.NORMAL    -> "רגיל"
+            VoiceEffect.CHIPMUNK  -> "נמייה"
+            VoiceEffect.DEEP_VOICE -> "קול עמוק"
+            VoiceEffect.ROBOT     -> "רובוט"
+            VoiceEffect.ECHO      -> "הד"
+        }}"
     }
 
     private fun setupStartStopButton() {
         binding.btnStartStop.setOnClickListener {
-            if (isRunning) {
-                stopVoiceChanger()
-            } else {
-                if (checkPermissions()) {
-                    startVoiceChanger()
-                } else {
-                    requestPermissions()
-                }
-            }
+            if (isRunning) stopVoiceChanger()
+            else if (checkPermissions()) startVoiceChanger()
+            else requestPermissions()
         }
     }
 
-    private fun setupSlider() {
-        binding.sliderIntensity.addOnChangeListener { _, value, _ ->
-            voiceService?.audioProcessor?.intensity = value
-        }
+    private fun setupSeekBar() {
+        binding.seekbarIntensity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                voiceService?.audioProcessor?.intensity = seekbarToIntensity(progress)
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
     }
 
     private fun startVoiceChanger() {
@@ -129,24 +116,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(intent)
         }
-        bindService(
-            Intent(this, VoiceChangerService::class.java),
-            serviceConnection,
-            Context.BIND_AUTO_CREATE
-        )
+        bindService(Intent(this, VoiceChangerService::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
         isRunning = true
         updateUI()
     }
 
     private fun stopVoiceChanger() {
-        if (isBound) {
-            unbindService(serviceConnection)
-            isBound = false
-        }
-        val intent = Intent(this, VoiceChangerService::class.java).apply {
-            action = VoiceChangerService.ACTION_STOP
-        }
-        startService(intent)
+        if (isBound) { unbindService(serviceConnection); isBound = false }
+        startService(Intent(this, VoiceChangerService::class.java).apply { action = VoiceChangerService.ACTION_STOP })
         isRunning = false
         voiceService = null
         updateUI()
@@ -154,55 +131,45 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateUI() {
         if (isRunning) {
-            binding.btnStartStop.text = "⏹ עצור"
-            binding.btnStartStop.setBackgroundColor(ContextCompat.getColor(this, R.color.stop_red))
-            binding.tvStatus.text = "🎙 פעיל — מעבד קול..."
+            binding.btnStartStop.text = "עצור"
+            binding.btnStartStop.backgroundTintList =
+                ContextCompat.getColorStateList(this, R.color.stop_red)
+            binding.tvStatus.text = "פעיל - מעבד קול..."
         } else {
-            binding.btnStartStop.text = "▶ התחל"
-            binding.btnStartStop.setBackgroundColor(ContextCompat.getColor(this, R.color.start_green))
+            binding.btnStartStop.text = "התחל"
+            binding.btnStartStop.backgroundTintList =
+                ContextCompat.getColorStateList(this, R.color.start_green)
             binding.tvStatus.text = "לחץ התחל להפעלה"
         }
     }
 
     private fun checkPermissions(): Boolean {
-        val audioPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-        val notifPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val audio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        val notif = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            PackageManager.PERMISSION_GRANTED
-        }
-        return audioPermission == PackageManager.PERMISSION_GRANTED &&
-               notifPermission == PackageManager.PERMISSION_GRANTED
+        else PackageManager.PERMISSION_GRANTED
+        return audio == PackageManager.PERMISSION_GRANTED && notif == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestPermissions() {
-        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        ActivityCompat.requestPermissions(this, permissions.toTypedArray(), REQUEST_PERMISSIONS)
+        val perms = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            perms.add(Manifest.permission.POST_NOTIFICATIONS)
+        ActivityCompat.requestPermissions(this, perms.toTypedArray(), REQUEST_PERMISSIONS)
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_PERMISSIONS) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
                 startVoiceChanger()
-            } else {
+            else
                 Toast.makeText(this, "נדרשת הרשאת מיקרופון", Toast.LENGTH_LONG).show()
-            }
         }
     }
 
     override fun onDestroy() {
-        if (isBound) {
-            unbindService(serviceConnection)
-            isBound = false
-        }
+        if (isBound) { try { unbindService(serviceConnection) } catch (_: Exception) {} }
         super.onDestroy()
     }
 }

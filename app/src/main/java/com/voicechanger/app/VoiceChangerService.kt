@@ -22,8 +22,8 @@ class VoiceChangerService : Service() {
 
     companion object {
         const val ACTION_START = "com.voicechanger.app.START"
-        const val ACTION_STOP = "com.voicechanger.app.STOP"
-        const val CHANNEL_ID = "VoiceChangerChannel"
+        const val ACTION_STOP  = "com.voicechanger.app.STOP"
+        const val CHANNEL_ID   = "VoiceChangerChannel"
         const val NOTIFICATION_ID = 1
     }
 
@@ -40,7 +40,14 @@ class VoiceChangerService : Service() {
             }
             ACTION_STOP -> {
                 audioProcessor.stop()
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                // stopForeground(STOP_FOREGROUND_REMOVE) requires API 33+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
                 stopSelf()
             }
         }
@@ -56,39 +63,35 @@ class VoiceChangerService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Voice Changer",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Voice changer is active"
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            val channel = NotificationChannel(CHANNEL_ID, "Voice Changer", NotificationManager.IMPORTANCE_LOW)
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
     }
 
     private fun buildNotification(): Notification {
-        val stopIntent = Intent(this, VoiceChangerService::class.java).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getService(
-            this, 0, stopIntent,
+        // FLAG_IMMUTABLE requires API 23+
+        val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        else
+            PendingIntent.FLAG_UPDATE_CURRENT
 
-        val openIntent = Intent(this, MainActivity::class.java)
-        val openPendingIntent = PendingIntent.getActivity(
-            this, 0, openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val stopPi = PendingIntent.getService(
+            this, 0,
+            Intent(this, VoiceChangerService::class.java).apply { action = ACTION_STOP },
+            pendingFlags
+        )
+        val openPi = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java),
+            pendingFlags
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Voice Changer Active")
-            .setContentText("Tap to open • Tap Stop to end")
+            .setContentTitle("Voice Changer פועל")
+            .setContentText("הקול שלך משתנה בזמן אמת")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentIntent(openPendingIntent)
-            .addAction(android.R.drawable.ic_media_pause, "Stop", stopPendingIntent)
+            .setContentIntent(openPi)
+            .addAction(android.R.drawable.ic_media_pause, "עצור", stopPi)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

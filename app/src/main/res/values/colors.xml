@@ -11,6 +11,7 @@
     <!-- App-specific colors -->
     <color name="background_dark">#FF121212</color>
     <color name="card_bg">#FF1E1E2E</color>
+    <color name="card_selected">#FF2E2050</color>
     <color name="card_stroke_default">#FF2A2A3A</color>
     <color name="text_secondary">#FF9E9E9E</color>
     <color name="start_green">#FF2E7D32</color>

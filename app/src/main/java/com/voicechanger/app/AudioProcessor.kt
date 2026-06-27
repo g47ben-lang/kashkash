@@ -6,6 +6,7 @@ import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.os.Build
 import com.voicechanger.app.effects.EchoEffect
 import com.voicechanger.app.effects.PitchShifter
 import com.voicechanger.app.effects.RobotEffect
@@ -22,7 +23,7 @@ class AudioProcessor {
     private val encoding = AudioFormat.ENCODING_PCM_16BIT
 
     private val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelIn, encoding)
-    private val bufferSize = minBufferSize * 2
+    private val bufferSize = maxOf(minBufferSize * 2, 4096)
 
     private var audioRecord: AudioRecord? = null
     private var audioTrack: AudioTrack? = null
@@ -37,29 +38,32 @@ class AudioProcessor {
 
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-            sampleRate,
-            channelIn,
-            encoding,
-            bufferSize
+            sampleRate, channelIn, encoding, bufferSize
         )
 
-        audioTrack = AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(channelOut)
-                    .setEncoding(encoding)
-                    .build()
-            )
-            .setBufferSizeInBytes(bufferSize)
-            .setTransferMode(AudioTrack.MODE_STREAM)
-            .build()
+        // AudioTrack.Builder requires API 21; use legacy constructor on older devices
+        audioTrack = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(channelOut)
+                        .setEncoding(encoding)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .setTransferMode(AudioTrack.MODE_STREAM)
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, channelOut, encoding, bufferSize, AudioTrack.MODE_STREAM)
+        }
 
         audioRecord?.startRecording()
         audioTrack?.play()
@@ -69,8 +73,7 @@ class AudioProcessor {
             while (running) {
                 val read = audioRecord?.read(buffer, 0, buffer.size) ?: break
                 if (read > 0) {
-                    val chunk = buffer.copyOf(read)
-                    val processed = applyEffect(chunk)
+                    val processed = applyEffect(buffer.copyOf(read))
                     audioTrack?.write(processed, 0, processed.size)
                 }
             }
@@ -83,27 +86,19 @@ class AudioProcessor {
 
     fun stop() {
         running = false
-        try {
-            audioRecord?.stop()
-            audioRecord?.release()
-            audioRecord = null
-        } catch (e: Exception) { /* ignore */ }
-        try {
-            audioTrack?.stop()
-            audioTrack?.release()
-            audioTrack = null
-        } catch (e: Exception) { /* ignore */ }
+        try { audioRecord?.stop(); audioRecord?.release() } catch (_: Exception) {}
+        try { audioTrack?.stop(); audioTrack?.release() } catch (_: Exception) {}
+        audioRecord = null
+        audioTrack = null
         EchoEffect.reset()
         RobotEffect.reset()
     }
 
-    private fun applyEffect(input: ShortArray): ShortArray {
-        return when (currentEffect) {
-            VoiceEffect.NORMAL -> input
-            VoiceEffect.CHIPMUNK -> PitchShifter.shift(input, 1.5f * intensity.coerceIn(0.5f, 2.0f))
-            VoiceEffect.DEEP_VOICE -> PitchShifter.shift(input, (0.7f / intensity.coerceIn(0.5f, 1.5f)).coerceAtLeast(0.3f))
-            VoiceEffect.ROBOT -> RobotEffect.apply(input, sampleRate, 80f * intensity)
-            VoiceEffect.ECHO -> EchoEffect.apply(input, 0.45f * intensity)
-        }
+    private fun applyEffect(input: ShortArray): ShortArray = when (currentEffect) {
+        VoiceEffect.NORMAL     -> input
+        VoiceEffect.CHIPMUNK   -> PitchShifter.shift(input, 1.5f * intensity.coerceIn(0.5f, 2.0f))
+        VoiceEffect.DEEP_VOICE -> PitchShifter.shift(input, (0.7f / intensity.coerceIn(0.5f, 1.5f)).coerceAtLeast(0.3f))
+        VoiceEffect.ROBOT      -> RobotEffect.apply(input, sampleRate, 80f * intensity)
+        VoiceEffect.ECHO       -> EchoEffect.apply(input, 0.45f * intensity)
     }
 }

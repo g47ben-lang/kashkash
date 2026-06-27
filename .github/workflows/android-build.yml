@@ -52,20 +52,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
+      # מוריד Gradle ומייצר gradlew אוטומטית - פותר את שגיאת "gradlew not found"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-
-
-      - name: Grant execute permission to gradlew
-        run: chmod +x gradlew
-        working-directory: ${{ github.workspace }}
+          gradle-version: '8.4'
+          cache-read-only: false
 
       # דריסת משתנים אם הוגדרו ידנית ב-workflow_dispatch
       - name: Override build variables (manual run only)
@@ -86,15 +79,15 @@ jobs:
 
       - name: Run unit tests
         if: github.event.inputs.run_tests != 'false'
-        run: ./gradlew test
+        run: gradle test
 
       - name: Build Debug APK
         if: github.event.inputs.build_type != 'release'
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: Build Release APK
         if: github.event.inputs.build_type == 'release'
-        run: ./gradlew assembleRelease
+        run: gradle assembleRelease
 
       - name: Upload Debug APK
         if: github.event.inputs.build_type != 'release'
