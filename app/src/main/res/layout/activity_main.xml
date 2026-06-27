@@ -316,6 +316,120 @@
 
         </LinearLayout>
 
+        <!-- ══ Device selection ══════════════════════════════════════════════ -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/card_bg"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Microphone row -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🎙 מיקרופון"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="6dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnMicMain"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginRight="4dp"
+                        android:text="ראשי"
+                        android:textSize="12sp"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/purple_500"/>
+
+                    <Button
+                        android:id="@+id/btnMicComm"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginLeft="4dp"
+                        android:text="שיחה + AEC"
+                        android:textSize="12sp"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/preview_btn"/>
+
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/card_stroke_default"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp"/>
+
+                <!-- Output row -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🔊 יציאת שמע"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:paddingBottom="6dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnOutEarpiece"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginRight="4dp"
+                        android:text="אוזנייה"
+                        android:textSize="11sp"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/preview_btn"/>
+
+                    <Button
+                        android:id="@+id/btnOutSpeaker"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginLeft="4dp"
+                        android:layout_marginRight="4dp"
+                        android:text="רמקול"
+                        android:textSize="11sp"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/preview_btn"/>
+
+                    <Button
+                        android:id="@+id/btnOutBluetooth"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginLeft="4dp"
+                        android:text="BT"
+                        android:textSize="11sp"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/preview_btn"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <!-- Selected effect label -->
         <TextView
             android:id="@+id/tvSelectedEffect"

@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.widget.Button
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -26,7 +27,6 @@ class MainActivity : AppCompatActivity() {
     private var isRunning = false
     private var selectedEffect = VoiceEffect.NORMAL
 
-    // Standalone AudioProcessor used only for previews (no service needed)
     private val previewProcessor: AudioProcessor by lazy { AudioProcessor(this) }
 
     private val serviceConnection = object : ServiceConnection {
@@ -53,10 +53,16 @@ class MainActivity : AppCompatActivity() {
 
         setupEffectCards()
         setupPreviewButtons()
+        setupDeviceButtons()
         setupStartStopButton()
         setupSeekBar()
         selectEffect(VoiceEffect.NORMAL)
+        // Reflect default selections
+        highlightMicButton(binding.btnMicComm)
+        highlightOutputButton(binding.btnOutEarpiece)
     }
+
+    // ── Effect cards ──────────────────────────────────────────────────────────
 
     private fun setupEffectCards() {
         binding.cardNormal.setOnClickListener    { selectEffect(VoiceEffect.NORMAL) }
@@ -83,6 +89,75 @@ class MainActivity : AppCompatActivity() {
         binding.previewOldMan.setOnClickListener    { previewProcessor.preview(VoiceEffect.OLD_MAN) }
         binding.previewTelephone.setOnClickListener { previewProcessor.preview(VoiceEffect.TELEPHONE) }
     }
+
+    // ── Device selection ──────────────────────────────────────────────────────
+
+    private fun setupDeviceButtons() {
+        // Microphone
+        binding.btnMicMain.setOnClickListener {
+            setMicSource(MicSource.MAIN)
+            highlightMicButton(binding.btnMicMain)
+        }
+        binding.btnMicComm.setOnClickListener {
+            setMicSource(MicSource.COMMUNICATION)
+            highlightMicButton(binding.btnMicComm)
+        }
+
+        // Output
+        binding.btnOutEarpiece.setOnClickListener {
+            setOutputMode(OutputMode.EARPIECE)
+            highlightOutputButton(binding.btnOutEarpiece)
+        }
+        binding.btnOutSpeaker.setOnClickListener {
+            setOutputMode(OutputMode.SPEAKER)
+            highlightOutputButton(binding.btnOutSpeaker)
+        }
+        binding.btnOutBluetooth.setOnClickListener {
+            setOutputMode(OutputMode.BLUETOOTH)
+            highlightOutputButton(binding.btnOutBluetooth)
+        }
+    }
+
+    private fun setMicSource(src: MicSource) {
+        previewProcessor.micSource = src
+        val svc = voiceService?.audioProcessor ?: return
+        if (isRunning) {
+            // Restart the pipeline with the new source
+            Toast.makeText(this, "מחליף מיקרופון…", Toast.LENGTH_SHORT).show()
+            stopVoiceChanger()
+            svc.micSource = src
+            if (checkPermissions()) startVoiceChanger()
+        } else {
+            svc.micSource = src
+        }
+    }
+
+    private fun setOutputMode(mode: OutputMode) {
+        previewProcessor.outputMode = mode
+        voiceService?.audioProcessor?.let {
+            it.outputMode = mode
+            if (isRunning) it.applyOutputRouting()
+        }
+    }
+
+    private val micButtons   get() = listOf(binding.btnMicMain, binding.btnMicComm)
+    private val outputButtons get() = listOf(binding.btnOutEarpiece, binding.btnOutSpeaker, binding.btnOutBluetooth)
+
+    private fun highlightMicButton(active: Button) {
+        micButtons.forEach {
+            it.backgroundTintList = ContextCompat.getColorStateList(this,
+                if (it === active) R.color.purple_500 else R.color.preview_btn)
+        }
+    }
+
+    private fun highlightOutputButton(active: Button) {
+        outputButtons.forEach {
+            it.backgroundTintList = ContextCompat.getColorStateList(this,
+                if (it === active) R.color.teal_700 else R.color.preview_btn)
+        }
+    }
+
+    // ── Effect selection ──────────────────────────────────────────────────────
 
     private fun selectEffect(effect: VoiceEffect) {
         selectedEffect = effect
@@ -123,6 +198,8 @@ class MainActivity : AppCompatActivity() {
         }}"
     }
 
+    // ── Start / stop ──────────────────────────────────────────────────────────
+
     private fun setupStartStopButton() {
         binding.btnStartStop.setOnClickListener {
             if (isRunning) stopVoiceChanger()
@@ -131,27 +208,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupSeekBar() {
-        binding.seekbarIntensity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                val intensity = seekbarToIntensity(progress)
-                voiceService?.audioProcessor?.intensity = intensity
-                previewProcessor.intensity = intensity
-            }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
-        })
-    }
-
     private fun startVoiceChanger() {
         val intent = Intent(this, VoiceChangerService::class.java).apply {
             action = VoiceChangerService.ACTION_START
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
+        else startService(intent)
         bindService(Intent(this, VoiceChangerService::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
         isRunning = true
         updateUI()
@@ -159,7 +221,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopVoiceChanger() {
         if (isBound) { unbindService(serviceConnection); isBound = false }
-        startService(Intent(this, VoiceChangerService::class.java).apply { action = VoiceChangerService.ACTION_STOP })
+        startService(Intent(this, VoiceChangerService::class.java).apply {
+            action = VoiceChangerService.ACTION_STOP
+        })
         isRunning = false
         voiceService = null
         updateUI()
@@ -168,16 +232,30 @@ class MainActivity : AppCompatActivity() {
     private fun updateUI() {
         if (isRunning) {
             binding.btnStartStop.text = "עצור"
-            binding.btnStartStop.backgroundTintList =
-                ContextCompat.getColorStateList(this, R.color.stop_red)
+            binding.btnStartStop.backgroundTintList = ContextCompat.getColorStateList(this, R.color.stop_red)
             binding.tvStatus.text = "פעיל - מעבד קול..."
         } else {
             binding.btnStartStop.text = "התחל"
-            binding.btnStartStop.backgroundTintList =
-                ContextCompat.getColorStateList(this, R.color.start_green)
+            binding.btnStartStop.backgroundTintList = ContextCompat.getColorStateList(this, R.color.start_green)
             binding.tvStatus.text = "לחץ התחל להפעלה"
         }
     }
+
+    // ── SeekBar ───────────────────────────────────────────────────────────────
+
+    private fun setupSeekBar() {
+        binding.seekbarIntensity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                val lvl = seekbarToIntensity(progress)
+                voiceService?.audioProcessor?.intensity = lvl
+                previewProcessor.intensity = lvl
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+    }
+
+    // ── Permissions ───────────────────────────────────────────────────────────
 
     private fun checkPermissions(): Boolean {
         val audio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
@@ -206,6 +284,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         if (isBound) { try { unbindService(serviceConnection) } catch (_: Exception) {} }
+        previewProcessor.release()
         super.onDestroy()
     }
 }
