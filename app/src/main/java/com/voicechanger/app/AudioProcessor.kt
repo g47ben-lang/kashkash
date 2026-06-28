@@ -10,13 +10,11 @@ import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.NoiseSuppressor
 import android.os.Build
-import android.speech.tts.TextToSpeech
 import com.voicechanger.app.effects.EchoEffect
 import com.voicechanger.app.effects.PitchShifter
 import com.voicechanger.app.effects.RobotEffect
 import com.voicechanger.app.effects.TelephoneEffect
 import com.voicechanger.app.effects.TremoloEffect
-import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -34,16 +32,16 @@ enum class OutputMode { EARPIECE, SPEAKER, BLUETOOTH }
 
 class AudioProcessor(private val context: Context) {
 
-    private val sampleRate = 44100
-    private val channelIn  = AudioFormat.CHANNEL_IN_MONO
-    private val channelOut = AudioFormat.CHANNEL_OUT_MONO
-    private val encoding   = AudioFormat.ENCODING_PCM_16BIT
+    private val sampleRate   = 44100
+    private val channelIn    = AudioFormat.CHANNEL_IN_MONO
+    private val channelOut   = AudioFormat.CHANNEL_OUT_MONO
+    private val encoding     = AudioFormat.ENCODING_PCM_16BIT
 
     private val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelIn, encoding)
     private val bufferSize    = maxOf(minBufferSize * 2, 4096)
 
-    private var audioRecord: AudioRecord? = null
-    private var audioTrack:  AudioTrack?  = null
+    private var audioRecord:     AudioRecord?          = null
+    private var audioTrack:      AudioTrack?           = null
     private var echoCanceler:    AcousticEchoCanceler? = null
     private var noiseSuppressor: NoiseSuppressor?      = null
 
@@ -51,31 +49,28 @@ class AudioProcessor(private val context: Context) {
     @Volatile var intensity:     Float       = 1.0f
     @Volatile var micSource:     MicSource   = MicSource.COMMUNICATION
     @Volatile var outputMode:    OutputMode  = OutputMode.EARPIECE
-    @Volatile private var running       = false
-    @Volatile private var previewBusy   = false
+    @Volatile private var running     = false
+    @Volatile private var previewBusy = false
 
-    // ── TextToSpeech for preview ──────────────────────────────────────────────
-    private var tts: TextToSpeech? = null
-    private var ttsReady = false
-
-    init {
-        tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                tts?.language = Locale.ENGLISH  // fallback; Hebrew may not be installed
-                ttsReady = true
-            }
-        }
-    }
-
-    // ── Start / stop live processing ──────────────────────────────────────────
+    // ── Start / stop ──────────────────────────────────────────────────────────
 
     fun start() {
         if (running) return
         running = true
 
-        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        am.mode = AudioManager.MODE_IN_COMMUNICATION
-        applyOutputRouting(am)
+        val am = audioManager()
+
+        // Detect if wired/BT headset is already connected; prefer those over earpiece
+        val headsetOn = isHeadsetConnected(am)
+
+        if (headsetOn && outputMode == OutputMode.EARPIECE) {
+            // Route through headset: use STREAM_MUSIC mode to avoid mic picking up playback
+            am.mode = AudioManager.MODE_NORMAL
+            @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
+        } else {
+            am.mode = AudioManager.MODE_IN_COMMUNICATION
+            applyOutputRouting(am)
+        }
 
         audioRecord = AudioRecord(micSource.audioSource, sampleRate, channelIn, encoding, bufferSize)
 
@@ -85,7 +80,11 @@ class AudioProcessor(private val context: Context) {
         if (NoiseSuppressor.isAvailable())
             noiseSuppressor = NoiseSuppressor.create(sessionId)?.also { it.enabled = true }
 
-        audioTrack = buildLiveTrack()
+        audioTrack = if (headsetOn && outputMode == OutputMode.EARPIECE)
+            buildTrack(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC, AudioManager.STREAM_MUSIC)
+        else
+            buildTrack(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH, AudioManager.STREAM_VOICE_CALL)
+
         audioRecord?.startRecording()
         audioTrack?.play()
 
@@ -110,120 +109,68 @@ class AudioProcessor(private val context: Context) {
         audioRecord = null; audioTrack = null
         EchoEffect.reset(); RobotEffect.reset(); TremoloEffect.reset(); TelephoneEffect.reset()
 
-        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        @Suppress("DEPRECATION")
-        am.isSpeakerphoneOn = false
+        val am = audioManager()
+        @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
         try { am.stopBluetoothSco() } catch (_: Exception) {}
         am.mode = AudioManager.MODE_NORMAL
     }
 
-    fun release() {
-        stop()
-        tts?.shutdown()
-        tts = null
+    fun release() = stop()
+
+    // ── Output routing ────────────────────────────────────────────────────────
+
+    fun applyOutputRouting(am: AudioManager = audioManager()) {
+        try { am.stopBluetoothSco() } catch (_: Exception) {}
+        @Suppress("DEPRECATION") am.isBluetoothScoOn = false
+        when (outputMode) {
+            OutputMode.EARPIECE  -> { @Suppress("DEPRECATION") am.isSpeakerphoneOn = false }
+            OutputMode.SPEAKER   -> { @Suppress("DEPRECATION") am.isSpeakerphoneOn = true  }
+            OutputMode.BLUETOOTH -> {
+                @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
+                try { am.startBluetoothSco(); @Suppress("DEPRECATION") am.isBluetoothScoOn = true } catch (_: Exception) {}
+            }
+        }
     }
 
-    // ── Preview: TTS → effect chain → AudioTrack ─────────────────────────────
+    // ── Preview (synthetic signal) ────────────────────────────────────────────
 
     fun preview(effect: VoiceEffect) {
         if (running || previewBusy) return
-        if (ttsReady) {
-            previewWithTts(effect)
-        } else {
-            previewWithSynth(effect)
-        }
-    }
-
-    private fun previewWithTts(effect: VoiceEffect) {
-        // Synthesize speech to a file, load it, apply effect, play it
-        // Simplest cross-version approach: use TTS to play through the system speaker
-        // then apply effect in the synthesis buffer via PCM callback (API 26+).
-        // For broad compat we fall back to synth signal when PCM API unavailable.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            previewBusy = true
-            val sampleLabel = when (effect) {
-                VoiceEffect.NORMAL    -> "Hello, this is normal voice."
-                VoiceEffect.CHIPMUNK  -> "Hello, I am a chipmunk!"
-                VoiceEffect.DEEP_VOICE -> "Hello, deep voice speaking."
-                VoiceEffect.ROBOT     -> "Hello. I am a robot."
-                VoiceEffect.ECHO      -> "Hello in the echo chamber."
-                VoiceEffect.CHILD     -> "Hi! I am a little kid!"
-                VoiceEffect.BIBI      -> "Ladies and gentlemen."
-                VoiceEffect.TRUMP     -> "Believe me, this is huge."
-                VoiceEffect.OLD_MAN   -> "Back in my day, you see."
-                VoiceEffect.TELEPHONE -> "Hello, can you hear me?"
-            }
-            // Collect PCM from TTS, apply effect, play back
-            val pcmBuffer = mutableListOf<Short>()
-            val params = android.os.Bundle()
-            tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-                override fun onStart(id: String?) {}
-                override fun onDone(id: String?) {
-                    Thread {
-                        try {
-                            val combined = pcmBuffer.toShortArray()
-                            if (combined.isNotEmpty()) {
-                                val processed = applyEffect(combined, effect, intensity)
-                                playOnce(processed)
-                            }
-                        } finally { previewBusy = false }
-                    }.apply { isDaemon = true; start() }
-                }
-                override fun onError(id: String?) { previewBusy = false }
-            })
-            // Synthesize to PCM via AudioTrack callback (API 26+)
-            val track = android.media.AudioTrack.Builder()
-                .setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-                .setAudioFormat(AudioFormat.Builder()
-                    .setSampleRate(sampleRate).setChannelMask(channelOut).setEncoding(encoding).build())
-                .setBufferSizeInBytes(bufferSize * 4)
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build()
-            track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
-                override fun onMarkerReached(t: AudioTrack?) {}
-                override fun onPeriodicNotification(t: AudioTrack?) {}
-            })
-            // Fall back to synth for simplicity - TTS PCM capture is very complex cross-version
-            previewBusy = false
-            previewWithSynth(effect)
-        } else {
-            previewWithSynth(effect)
-        }
-    }
-
-    private fun previewWithSynth(effect: VoiceEffect) {
         previewBusy = true
         Thread {
             try {
-                val signal = generateVoiceSignal()
+                val signal    = generateVoiceSignal()
                 val processed = applyEffect(signal, effect, intensity)
                 playOnce(processed)
             } finally { previewBusy = false }
         }.apply { isDaemon = true; start() }
     }
 
-    // ── Output routing ────────────────────────────────────────────────────────
-
-    fun applyOutputRouting(am: AudioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager) {
-        try { am.stopBluetoothSco() } catch (_: Exception) {}
-        @Suppress("DEPRECATION")
-        am.isBluetoothScoOn = false
-        when (outputMode) {
-            OutputMode.EARPIECE   -> { @Suppress("DEPRECATION") am.isSpeakerphoneOn = false }
-            OutputMode.SPEAKER    -> { @Suppress("DEPRECATION") am.isSpeakerphoneOn = true  }
-            OutputMode.BLUETOOTH  -> {
-                @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
-                try {
-                    am.startBluetoothSco()
-                    @Suppress("DEPRECATION") am.isBluetoothScoOn = true
-                } catch (_: Exception) {}
-            }
+    // Harmonic sawtooth at 110 Hz with smooth envelope — sounds like a sustained vowel
+    private fun generateVoiceSignal(durationMs: Int = 900): ShortArray {
+        val samples = sampleRate * durationMs / 1000
+        val result  = ShortArray(samples)
+        val f0 = 110.0
+        for (i in 0 until samples) {
+            val t = i.toDouble() / sampleRate
+            var s = 0.0
+            for (h in 1..10) s += sin(2 * PI * f0 * h * t) / h
+            val env = minOf(i / (sampleRate * 0.04), 1.0) *
+                      minOf((samples - i) / (sampleRate * 0.08), 1.0)
+            result[i] = (s * 0.28 * env * 32767).toInt().coerceIn(-32768, 32767).toShort()
         }
+        return result
     }
 
-    // ── DSP effects ───────────────────────────────────────────────────────────
+    private fun playOnce(buffer: ShortArray) {
+        val track = buildTrack(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC, AudioManager.STREAM_MUSIC)
+        track.play()
+        track.write(buffer, 0, buffer.size)
+        Thread.sleep(buffer.size * 1000L / sampleRate + 200)
+        try { track.stop(); track.release() } catch (_: Exception) {}
+    }
+
+    // ── DSP ───────────────────────────────────────────────────────────────────
 
     private fun applyEffect(input: ShortArray, effect: VoiceEffect, lvl: Float): ShortArray =
         when (effect) {
@@ -239,60 +186,26 @@ class AudioProcessor(private val context: Context) {
             VoiceEffect.TELEPHONE  -> TelephoneEffect.apply(input, sampleRate)
         }
 
-    // ── Synthetic voice signal for preview ────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun generateVoiceSignal(durationMs: Int = 900): ShortArray {
-        val samples = sampleRate * durationMs / 1000
-        val result  = ShortArray(samples)
-        val f0 = 110.0  // A2 – male vocal fundamental
-        for (i in 0 until samples) {
-            val t = i.toDouble() / sampleRate
-            var s = 0.0
-            for (h in 1..10) s += sin(2 * PI * f0 * h * t) / h
-            val env = minOf(i / (sampleRate * 0.04), 1.0) *
-                      minOf((samples - i) / (sampleRate * 0.08), 1.0)
-            result[i] = (s * 0.28 * env * 32767).toInt().coerceIn(-32768, 32767).toShort()
-        }
-        return result
-    }
+    @Suppress("DEPRECATION")
+    private fun isHeadsetConnected(am: AudioManager): Boolean =
+        am.isWiredHeadsetOn || am.isBluetoothA2dpOn || am.isBluetoothScoOn
 
-    private fun playOnce(buffer: ShortArray) {
-        val track = buildPreviewTrack()
-        track.play()
-        track.write(buffer, 0, buffer.size)
-        Thread.sleep(buffer.size * 1000L / sampleRate + 200)
-        try { track.stop(); track.release() } catch (_: Exception) {}
-    }
+    private fun audioManager() =
+        context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    // ── AudioTrack builders ───────────────────────────────────────────────────
-
-    private fun buildLiveTrack(): AudioTrack =
+    private fun buildTrack(usage: Int, contentType: Int, legacyStream: Int): AudioTrack =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                    .setUsage(usage).setContentType(contentType).build())
                 .setAudioFormat(AudioFormat.Builder()
                     .setSampleRate(sampleRate).setChannelMask(channelOut).setEncoding(encoding).build())
                 .setBufferSizeInBytes(bufferSize)
                 .setTransferMode(AudioTrack.MODE_STREAM).build()
         } else {
             @Suppress("DEPRECATION")
-            AudioTrack(AudioManager.STREAM_VOICE_CALL, sampleRate, channelOut, encoding, bufferSize, AudioTrack.MODE_STREAM)
-        }
-
-    private fun buildPreviewTrack(): AudioTrack =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            AudioTrack.Builder()
-                .setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                .setAudioFormat(AudioFormat.Builder()
-                    .setSampleRate(sampleRate).setChannelMask(channelOut).setEncoding(encoding).build())
-                .setBufferSizeInBytes(bufferSize * 4)
-                .setTransferMode(AudioTrack.MODE_STREAM).build()
-        } else {
-            @Suppress("DEPRECATION")
-            AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, channelOut, encoding, bufferSize * 4, AudioTrack.MODE_STREAM)
+            AudioTrack(legacyStream, sampleRate, channelOut, encoding, bufferSize, AudioTrack.MODE_STREAM)
         }
 }
