@@ -65,10 +65,11 @@ class RvcEngine(
     private fun runHubert(audio16k: FloatArray): FloatArray {
         val buf   = FloatBuffer.wrap(audio16k)
         val shape = longArrayOf(1, audio16k.size.toLong())
-        val input = OnnxTensor.createTensor(env, buf, shape)
-        val out   = hubert.run(mapOf("audio" to input))
-        val raw   = out[0].value  // shape (1, T, phoneDim) or (T, phoneDim)
-        return flattenToFloat(raw)
+        OnnxTensor.createTensor(env, buf, shape).use { input ->
+            hubert.run(mapOf("audio" to input)).use { out ->
+                return flattenToFloat(out[0].value)
+            }
+        }
     }
 
     private fun runSynth(features: FloatArray, T: Int,
@@ -90,8 +91,9 @@ class RvcEngine(
             "pitchf"        to pitchfTensor,
             "ds"            to dsTensor,
         )
-        val out = synth.run(inputs)
-        return flattenToFloat(out[0].value)
+        synth.run(inputs).use { out ->
+            return flattenToFloat(out[0].value)
+        }
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
