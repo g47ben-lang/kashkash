@@ -2,8 +2,8 @@ name: Convert RVC models (.pth → .onnx)
 
 on:
   push:
-    paths:
-      - 'models/pth/**'
+    branches: [ "**" ]
+  workflow_dispatch:
 
 jobs:
   convert:
@@ -28,6 +28,30 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r scripts/requirements_export.txt
+
+      - name: Download RVC models from Hugging Face
+        run: |
+          mkdir -p models/pth
+          cd /tmp
+
+          echo "Downloading Bibi model..."
+          wget -q --show-progress -O bibi.zip \
+            https://huggingface.co/pipi00pipi/benjamin_netanyahu/resolve/main/bibi.zip
+          unzip -q bibi.zip -d bibi_extracted
+
+          echo "Downloading Trump model..."
+          wget -q --show-progress -O trump.zip \
+            https://huggingface.co/ThompsonAI9/ThompsonAI9RVC/resolve/main/donaldtrumplowenergy.zip
+          unzip -q trump.zip -d trump_extracted
+
+          echo "Copying .pth files (ignoring __MACOSX and .index files)..."
+          find bibi_extracted trump_extracted \
+            -name "*.pth" \
+            ! -path "*/__MACOSX/*" \
+            -exec cp {} $GITHUB_WORKSPACE/models/pth/ \;
+
+          echo "Models ready:"
+          ls -lh $GITHUB_WORKSPACE/models/pth/
 
       - name: Clone RVC source (for architecture code only)
         run: |
