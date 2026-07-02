@@ -4,6 +4,3 @@ onnx==1.15.0
 onnxruntime==1.17.3
 numpy<2
 scipy
-fairseq @ git+https://github.com/facebookresearch/fairseq.git@main#egg=fairseq
-praat-parselmouth
-pyworld
