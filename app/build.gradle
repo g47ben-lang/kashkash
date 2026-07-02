@@ -15,13 +15,23 @@ android {
         versionName   project.property('APP_VERSION_NAME')
     }
 
+    signingConfigs {
+        release {
+            storeFile     file('voicechanger.jks')
+            storePassword 'voicechanger123'
+            keyAlias      'voicechanger'
+            keyPassword   'voicechanger123'
+        }
+    }
+
     buildTypes {
         debug {
-            applicationIdSuffix '.debug'
-            versionNameSuffix '-debug'
+            // Same signing config as release so APK signature stays consistent
+            signingConfig signingConfigs.release
             debuggable true
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
