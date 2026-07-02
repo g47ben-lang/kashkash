@@ -112,19 +112,13 @@ jobs:
           TAG="apk-latest"
           VERSION=$(grep APP_VERSION_NAME gradle.properties | cut -d= -f2)
 
+          NOTES="Auto-build from commit $(git rev-parse --short HEAD). Download the .apk file below and install on Android (allow unknown sources in Settings)."
+
           gh release delete "$TAG" --repo ${{ github.repository }} --yes 2>/dev/null || true
           gh release create "$TAG" \
             --repo ${{ github.repository }} \
             --title "Voice Changer APK v${VERSION}" \
-            --notes "בנייה אוטומטית מ-commit $(git rev-parse --short HEAD).
-
-## הורדה והתקנה
-1. לחץ על הקובץ למטה להורדה
-2. בטלפון: הגדרות → אבטחה → אפשר התקנה ממקורות לא ידועים
-3. פתח את קובץ ה-APK שהורדת והתקן
-
-## קולות AI (ביבי / טראמפ)
-הקולות כלולים בחבילה ויופיעו אוטומטית בפתיחת האפליקציה." \
+            --notes "$NOTES" \
             --prerelease
 
           # Upload whichever APK was built
