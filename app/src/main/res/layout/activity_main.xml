@@ -335,7 +335,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🎙 מיקרופון"
+                    android:text="🎙 קלט מיקרופון"
                     android:textSize="13sp"
                     android:textColor="@color/text_secondary"
                     android:paddingBottom="6dp"/>
@@ -351,7 +351,7 @@
                         android:layout_height="36dp"
                         android:layout_weight="1"
                         android:layout_marginRight="4dp"
-                        android:text="ראשי"
+                        android:text="📱 טלפון"
                         android:textSize="12sp"
                         android:textColor="@color/white"
                         android:backgroundTint="@color/purple_500"/>
@@ -362,7 +362,7 @@
                         android:layout_height="36dp"
                         android:layout_weight="1"
                         android:layout_marginLeft="4dp"
-                        android:text="שיחה + AEC"
+                        android:text="🎧 אוזניה"
                         android:textSize="12sp"
                         android:textColor="@color/white"
                         android:backgroundTint="@color/preview_btn"/>

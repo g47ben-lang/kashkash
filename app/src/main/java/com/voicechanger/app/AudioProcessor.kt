@@ -27,8 +27,8 @@ enum class VoiceEffect {
 }
 
 enum class MicSource(val audioSource: Int) {
-    MAIN(MediaRecorder.AudioSource.MIC),
-    COMMUNICATION(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+    PHONE(MediaRecorder.AudioSource.MIC),                          // מיק פנימי של הטלפון
+    HEADSET(MediaRecorder.AudioSource.VOICE_COMMUNICATION)         // מיק של האוזניה / כבל
 }
 
 enum class OutputMode { EARPIECE, SPEAKER, BLUETOOTH }

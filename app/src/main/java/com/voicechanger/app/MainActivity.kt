@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         setupStartStopButton()
         setupSeekBar()
         selectEffect(VoiceEffect.NORMAL)
-        highlightMicButton(binding.btnMicComm)
+        highlightMicButton(binding.btnMicMain)
         highlightOutputButton(binding.btnOutEarpiece)
 
         // Load AI models on background thread
@@ -203,10 +203,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupDeviceButtons() {
         binding.btnMicMain.setOnClickListener {
-            setMicSource(MicSource.MAIN); highlightMicButton(binding.btnMicMain)
+            setMicSource(MicSource.PHONE); highlightMicButton(binding.btnMicMain)
         }
         binding.btnMicComm.setOnClickListener {
-            setMicSource(MicSource.COMMUNICATION); highlightMicButton(binding.btnMicComm)
+            setMicSource(MicSource.HEADSET); highlightMicButton(binding.btnMicComm)
         }
         binding.btnOutEarpiece.setOnClickListener {
             setOutputMode(OutputMode.EARPIECE); highlightOutputButton(binding.btnOutEarpiece)
