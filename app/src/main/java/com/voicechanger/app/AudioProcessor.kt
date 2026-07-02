@@ -87,28 +87,25 @@ class AudioProcessor(private val context: Context) {
         running = true
 
         val am = audioManager()
-        val headsetOn = isHeadsetConnected(am)
 
-        if (headsetOn && outputMode == OutputMode.EARPIECE) {
-            am.mode = AudioManager.MODE_NORMAL
-            @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
-        } else {
-            am.mode = AudioManager.MODE_IN_COMMUNICATION
-            applyOutputRouting(am)
-        }
+        // Always use COMMUNICATION mode - Android auto-routes to wired headset
+        // when one is plugged in. We only control speaker vs earpiece vs BT.
+        am.mode = AudioManager.MODE_IN_COMMUNICATION
+        applyOutputRouting(am)
 
         audioRecord = AudioRecord(micSource.audioSource, sampleRate, channelIn, encoding, bufferSize)
 
         val sessionId = audioRecord!!.audioSessionId
-        if (micSource == MicSource.COMMUNICATION && AcousticEchoCanceler.isAvailable())
+        if (AcousticEchoCanceler.isAvailable())
             echoCanceler = AcousticEchoCanceler.create(sessionId)?.also { it.enabled = true }
         if (NoiseSuppressor.isAvailable())
             noiseSuppressor = NoiseSuppressor.create(sessionId)?.also { it.enabled = true }
 
-        audioTrack = if (headsetOn && outputMode == OutputMode.EARPIECE)
-            buildTrack(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC, AudioManager.STREAM_MUSIC)
-        else
-            buildTrack(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH, AudioManager.STREAM_VOICE_CALL)
+        audioTrack = buildTrack(
+            AudioAttributes.USAGE_VOICE_COMMUNICATION,
+            AudioAttributes.CONTENT_TYPE_SPEECH,
+            AudioManager.STREAM_VOICE_CALL
+        )
 
         audioRecord?.startRecording()
         audioTrack?.play()
@@ -168,14 +165,27 @@ class AudioProcessor(private val context: Context) {
     // ── Output routing ────────────────────────────────────────────────────────
 
     fun applyOutputRouting(am: AudioManager = audioManager()) {
+        // Stop any active BT SCO before changing mode
         try { am.stopBluetoothSco() } catch (_: Exception) {}
         @Suppress("DEPRECATION") am.isBluetoothScoOn = false
+
         when (outputMode) {
-            OutputMode.EARPIECE  -> { @Suppress("DEPRECATION") am.isSpeakerphoneOn = false }
-            OutputMode.SPEAKER   -> { @Suppress("DEPRECATION") am.isSpeakerphoneOn = true  }
+            OutputMode.EARPIECE -> {
+                // No speaker, no BT — Android auto-routes to wired headset if connected,
+                // otherwise to phone earpiece
+                @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
+            }
+            OutputMode.SPEAKER -> {
+                @Suppress("DEPRECATION") am.isSpeakerphoneOn = true
+            }
             OutputMode.BLUETOOTH -> {
                 @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
-                try { am.startBluetoothSco(); @Suppress("DEPRECATION") am.isBluetoothScoOn = true } catch (_: Exception) {}
+                try {
+                    am.startBluetoothSco()
+                    // SCO handshake is async — give it 1.5 s to connect
+                    Thread.sleep(1500)
+                    @Suppress("DEPRECATION") am.isBluetoothScoOn = true
+                } catch (_: Exception) {}
             }
         }
     }
