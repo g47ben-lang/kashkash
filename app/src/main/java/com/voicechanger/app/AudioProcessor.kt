@@ -15,12 +15,15 @@ import com.voicechanger.app.effects.PitchShifter
 import com.voicechanger.app.effects.RobotEffect
 import com.voicechanger.app.effects.TelephoneEffect
 import com.voicechanger.app.effects.TremoloEffect
+import com.voicechanger.app.rvc.RvcEngine
+import com.voicechanger.app.rvc.RvcModel
 import kotlin.math.PI
 import kotlin.math.sin
 
 enum class VoiceEffect {
     NORMAL, CHIPMUNK, DEEP_VOICE, ROBOT, ECHO,
-    CHILD, BIBI, TRUMP, OLD_MAN, TELEPHONE
+    CHILD, BIBI, TRUMP, OLD_MAN, TELEPHONE,
+    RVC_AI   // active when an AI model is selected
 }
 
 enum class MicSource(val audioSource: Int) {
@@ -38,7 +41,8 @@ class AudioProcessor(private val context: Context) {
     private val encoding     = AudioFormat.ENCODING_PCM_16BIT
 
     private val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelIn, encoding)
-    private val bufferSize    = maxOf(minBufferSize * 2, 4096)
+    // Larger buffer for RVC to give the ONNX engine enough audio per call
+    private val bufferSize    = maxOf(minBufferSize * 8, 22050)  // ~500 ms at 44100
 
     private var audioRecord:     AudioRecord?          = null
     private var audioTrack:      AudioTrack?           = null
@@ -49,22 +53,43 @@ class AudioProcessor(private val context: Context) {
     @Volatile var intensity:     Float       = 1.0f
     @Volatile var micSource:     MicSource   = MicSource.COMMUNICATION
     @Volatile var outputMode:    OutputMode  = OutputMode.EARPIECE
+
+    // Active RVC model (null = use DSP effects)
+    @Volatile private var rvcEngine: RvcEngine? = null
     @Volatile private var running     = false
     @Volatile private var previewBusy = false
 
-    // ── Start / stop ──────────────────────────────────────────────────────────
+    // ── RVC model management ──────────────────────────────────────────────────
+
+    /**
+     * Load an AI voice model. Call from a background thread.
+     * Closes any previously loaded model automatically.
+     */
+    fun loadRvcModel(hubertPath: String, model: RvcModel) {
+        val wasRunning = running
+        if (wasRunning) stop()
+        rvcEngine?.close()
+        rvcEngine = RvcEngine(hubertPath, model.onnxPath, model.sampleRate, model.phoneDim)
+        currentEffect = VoiceEffect.RVC_AI
+        if (wasRunning) start()
+    }
+
+    fun clearRvcModel() {
+        rvcEngine?.close()
+        rvcEngine = null
+        if (currentEffect == VoiceEffect.RVC_AI) currentEffect = VoiceEffect.NORMAL
+    }
+
+    // ── Start / stop live processing ──────────────────────────────────────────
 
     fun start() {
         if (running) return
         running = true
 
         val am = audioManager()
-
-        // Detect if wired/BT headset is already connected; prefer those over earpiece
         val headsetOn = isHeadsetConnected(am)
 
         if (headsetOn && outputMode == OutputMode.EARPIECE) {
-            // Route through headset: use STREAM_MUSIC mode to avoid mic picking up playback
             am.mode = AudioManager.MODE_NORMAL
             @Suppress("DEPRECATION") am.isSpeakerphoneOn = false
         } else {
@@ -93,7 +118,12 @@ class AudioProcessor(private val context: Context) {
             while (running) {
                 val read = audioRecord?.read(buffer, 0, buffer.size) ?: break
                 if (read > 0) {
-                    val out = applyEffect(buffer.copyOf(read), currentEffect, intensity)
+                    val chunk = buffer.copyOf(read)
+                    val out = if (currentEffect == VoiceEffect.RVC_AI && rvcEngine != null) {
+                        try { rvcEngine!!.process(chunk) } catch (_: Exception) { chunk }
+                    } else {
+                        applyDspEffect(chunk, currentEffect, intensity)
+                    }
                     audioTrack?.write(out, 0, out.size)
                 }
             }
@@ -115,7 +145,25 @@ class AudioProcessor(private val context: Context) {
         am.mode = AudioManager.MODE_NORMAL
     }
 
-    fun release() = stop()
+    fun release() {
+        stop()
+        rvcEngine?.close()
+        rvcEngine = null
+    }
+
+    // ── Preview ───────────────────────────────────────────────────────────────
+
+    fun preview(effect: VoiceEffect) {
+        if (running || previewBusy || effect == VoiceEffect.RVC_AI) return
+        previewBusy = true
+        Thread {
+            try {
+                val signal    = generateVoiceSignal()
+                val processed = applyDspEffect(signal, effect, intensity)
+                playOnce(processed)
+            } finally { previewBusy = false }
+        }.apply { isDaemon = true; start() }
+    }
 
     // ── Output routing ────────────────────────────────────────────────────────
 
@@ -132,21 +180,25 @@ class AudioProcessor(private val context: Context) {
         }
     }
 
-    // ── Preview (synthetic signal) ────────────────────────────────────────────
+    // ── DSP effects ───────────────────────────────────────────────────────────
 
-    fun preview(effect: VoiceEffect) {
-        if (running || previewBusy) return
-        previewBusy = true
-        Thread {
-            try {
-                val signal    = generateVoiceSignal()
-                val processed = applyEffect(signal, effect, intensity)
-                playOnce(processed)
-            } finally { previewBusy = false }
-        }.apply { isDaemon = true; start() }
-    }
+    private fun applyDspEffect(input: ShortArray, effect: VoiceEffect, lvl: Float): ShortArray =
+        when (effect) {
+            VoiceEffect.NORMAL     -> input
+            VoiceEffect.CHIPMUNK   -> PitchShifter.shift(input, 1.5f * lvl.coerceIn(0.5f, 2.0f))
+            VoiceEffect.DEEP_VOICE -> PitchShifter.shift(input, (0.7f / lvl.coerceIn(0.5f, 1.5f)).coerceAtLeast(0.3f))
+            VoiceEffect.ROBOT      -> RobotEffect.apply(input, sampleRate, 80f * lvl)
+            VoiceEffect.ECHO       -> EchoEffect.apply(input, 0.45f * lvl)
+            VoiceEffect.CHILD      -> PitchShifter.shift(input, 1.9f * lvl.coerceIn(0.7f, 2.0f))
+            VoiceEffect.BIBI       -> EchoEffect.apply(PitchShifter.shift(input, 0.88f), 0.12f)
+            VoiceEffect.TRUMP      -> EchoEffect.apply(PitchShifter.shift(input, 0.80f), 0.18f)
+            VoiceEffect.OLD_MAN    -> TremoloEffect.apply(PitchShifter.shift(input, 0.83f), sampleRate, 5.5f, 0.5f * lvl)
+            VoiceEffect.TELEPHONE  -> TelephoneEffect.apply(input, sampleRate)
+            VoiceEffect.RVC_AI     -> input  // handled above
+        }
 
-    // Harmonic sawtooth at 110 Hz with smooth envelope — sounds like a sustained vowel
+    // ── Preview signal generator ──────────────────────────────────────────────
+
     private fun generateVoiceSignal(durationMs: Int = 900): ShortArray {
         val samples = sampleRate * durationMs / 1000
         val result  = ShortArray(samples)
@@ -169,22 +221,6 @@ class AudioProcessor(private val context: Context) {
         Thread.sleep(buffer.size * 1000L / sampleRate + 200)
         try { track.stop(); track.release() } catch (_: Exception) {}
     }
-
-    // ── DSP ───────────────────────────────────────────────────────────────────
-
-    private fun applyEffect(input: ShortArray, effect: VoiceEffect, lvl: Float): ShortArray =
-        when (effect) {
-            VoiceEffect.NORMAL     -> input
-            VoiceEffect.CHIPMUNK   -> PitchShifter.shift(input, 1.5f * lvl.coerceIn(0.5f, 2.0f))
-            VoiceEffect.DEEP_VOICE -> PitchShifter.shift(input, (0.7f / lvl.coerceIn(0.5f, 1.5f)).coerceAtLeast(0.3f))
-            VoiceEffect.ROBOT      -> RobotEffect.apply(input, sampleRate, 80f * lvl)
-            VoiceEffect.ECHO       -> EchoEffect.apply(input, 0.45f * lvl)
-            VoiceEffect.CHILD      -> PitchShifter.shift(input, 1.9f * lvl.coerceIn(0.7f, 2.0f))
-            VoiceEffect.BIBI       -> EchoEffect.apply(PitchShifter.shift(input, 0.88f), 0.12f)
-            VoiceEffect.TRUMP      -> EchoEffect.apply(PitchShifter.shift(input, 0.80f), 0.18f)
-            VoiceEffect.OLD_MAN    -> TremoloEffect.apply(PitchShifter.shift(input, 0.83f), sampleRate, 5.5f, 0.5f * lvl)
-            VoiceEffect.TELEPHONE  -> TelephoneEffect.apply(input, sampleRate)
-        }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

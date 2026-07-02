@@ -9,14 +9,19 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.voicechanger.app.databinding.ActivityMainBinding
+import com.voicechanger.app.rvc.ModelManager
+import com.voicechanger.app.rvc.RvcModel
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private var isBound = false
     private var isRunning = false
     private var selectedEffect = VoiceEffect.NORMAL
+    private var activeRvcModel: RvcModel? = null
 
     private val previewProcessor: AudioProcessor by lazy { AudioProcessor(this) }
 
@@ -57,9 +63,112 @@ class MainActivity : AppCompatActivity() {
         setupStartStopButton()
         setupSeekBar()
         selectEffect(VoiceEffect.NORMAL)
-        // Reflect default selections
         highlightMicButton(binding.btnMicComm)
         highlightOutputButton(binding.btnOutEarpiece)
+
+        // Load AI models on background thread
+        Thread { refreshRvcModels() }.apply { isDaemon = true; start() }
+    }
+
+    // ── AI model list ─────────────────────────────────────────────────────────
+
+    private fun refreshRvcModels() {
+        val models = ModelManager.listModels(this)
+        val ready  = ModelManager.isReady(this)
+        runOnUiThread { buildRvcSection(models, ready) }
+    }
+
+    private fun buildRvcSection(models: List<RvcModel>, hubertReady: Boolean) {
+        val container = binding.rvcModelContainer
+        container.removeAllViews()
+
+        if (!hubertReady && models.isEmpty()) {
+            container.visibility = View.GONE
+            return
+        }
+
+        container.visibility = View.VISIBLE
+
+        val header = TextView(this).apply {
+            text = "🤖 קולות AI (מודלים אמיתיים)"
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            setPadding(0, 0, 0, 8)
+        }
+        container.addView(header)
+
+        if (!hubertReady) {
+            val msg = TextView(this).apply {
+                text = "⚠️ חסר hubert.onnx\n${ModelManager.installPathInstructions(this@MainActivity)}"
+                textSize = 11f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.stop_red))
+            }
+            container.addView(msg)
+            return
+        }
+
+        if (models.isEmpty()) {
+            val msg = TextView(this).apply {
+                text = "לא נמצאו מודלים.\n${ModelManager.installPathInstructions(this@MainActivity)}"
+                textSize = 11f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            }
+            container.addView(msg)
+            return
+        }
+
+        // One button per model
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        container.addView(row)
+
+        for (model in models) {
+            val btn = Button(this).apply {
+                text = model.name
+                textSize = 11f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.white))
+                backgroundTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.preview_btn)
+                val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                lp.marginEnd = 6
+                layoutParams = lp
+                setOnClickListener { activateRvcModel(model) }
+            }
+            row.addView(btn)
+        }
+
+        // "DSP" button to go back to regular effects
+        val dspBtn = Button(this).apply {
+            text = "DSP"
+            textSize = 11f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.white))
+            backgroundTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.preview_btn)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            setOnClickListener { deactivateRvc() }
+        }
+        row.addView(dspBtn)
+    }
+
+    private fun activateRvcModel(model: RvcModel) {
+        activeRvcModel = model
+        binding.tvSelectedEffect.text = "🤖 AI: ${model.name}"
+        Toast.makeText(this, "טוען מודל ${model.name}…", Toast.LENGTH_SHORT).show()
+
+        val hubertPath = ModelManager.hubertPath(this)
+        val svc = voiceService
+        if (svc != null) {
+            Thread { svc.audioProcessor.loadRvcModel(hubertPath, model) }.apply { isDaemon = true; start() }
+        } else {
+            Thread { previewProcessor.loadRvcModel(hubertPath, model) }.apply { isDaemon = true; start() }
+        }
+    }
+
+    private fun deactivateRvc() {
+        activeRvcModel = null
+        voiceService?.audioProcessor?.clearRvcModel()
+        previewProcessor.clearRvcModel()
+        selectEffect(VoiceEffect.NORMAL)
     }
 
     // ── Effect cards ──────────────────────────────────────────────────────────
@@ -90,31 +199,23 @@ class MainActivity : AppCompatActivity() {
         binding.previewTelephone.setOnClickListener { previewProcessor.preview(VoiceEffect.TELEPHONE) }
     }
 
-    // ── Device selection ──────────────────────────────────────────────────────
+    // ── Device buttons ────────────────────────────────────────────────────────
 
     private fun setupDeviceButtons() {
-        // Microphone
         binding.btnMicMain.setOnClickListener {
-            setMicSource(MicSource.MAIN)
-            highlightMicButton(binding.btnMicMain)
+            setMicSource(MicSource.MAIN); highlightMicButton(binding.btnMicMain)
         }
         binding.btnMicComm.setOnClickListener {
-            setMicSource(MicSource.COMMUNICATION)
-            highlightMicButton(binding.btnMicComm)
+            setMicSource(MicSource.COMMUNICATION); highlightMicButton(binding.btnMicComm)
         }
-
-        // Output
         binding.btnOutEarpiece.setOnClickListener {
-            setOutputMode(OutputMode.EARPIECE)
-            highlightOutputButton(binding.btnOutEarpiece)
+            setOutputMode(OutputMode.EARPIECE); highlightOutputButton(binding.btnOutEarpiece)
         }
         binding.btnOutSpeaker.setOnClickListener {
-            setOutputMode(OutputMode.SPEAKER)
-            highlightOutputButton(binding.btnOutSpeaker)
+            setOutputMode(OutputMode.SPEAKER); highlightOutputButton(binding.btnOutSpeaker)
         }
         binding.btnOutBluetooth.setOnClickListener {
-            setOutputMode(OutputMode.BLUETOOTH)
-            highlightOutputButton(binding.btnOutBluetooth)
+            setOutputMode(OutputMode.BLUETOOTH); highlightOutputButton(binding.btnOutBluetooth)
         }
     }
 
@@ -122,25 +223,17 @@ class MainActivity : AppCompatActivity() {
         previewProcessor.micSource = src
         val svc = voiceService?.audioProcessor ?: return
         if (isRunning) {
-            // Restart the pipeline with the new source
-            Toast.makeText(this, "מחליף מיקרופון…", Toast.LENGTH_SHORT).show()
-            stopVoiceChanger()
-            svc.micSource = src
+            stopVoiceChanger(); svc.micSource = src
             if (checkPermissions()) startVoiceChanger()
-        } else {
-            svc.micSource = src
-        }
+        } else { svc.micSource = src }
     }
 
     private fun setOutputMode(mode: OutputMode) {
         previewProcessor.outputMode = mode
-        voiceService?.audioProcessor?.let {
-            it.outputMode = mode
-            if (isRunning) it.applyOutputRouting()
-        }
+        voiceService?.audioProcessor?.let { it.outputMode = mode; if (isRunning) it.applyOutputRouting() }
     }
 
-    private val micButtons   get() = listOf(binding.btnMicMain, binding.btnMicComm)
+    private val micButtons    get() = listOf(binding.btnMicMain, binding.btnMicComm)
     private val outputButtons get() = listOf(binding.btnOutEarpiece, binding.btnOutSpeaker, binding.btnOutBluetooth)
 
     private fun highlightMicButton(active: Button) {
@@ -161,6 +254,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun selectEffect(effect: VoiceEffect) {
         selectedEffect = effect
+        activeRvcModel = null
+        voiceService?.audioProcessor?.clearRvcModel()
         voiceService?.audioProcessor?.currentEffect = effect
 
         val allCards = listOf(
@@ -181,6 +276,7 @@ class MainActivity : AppCompatActivity() {
             VoiceEffect.TRUMP      -> binding.cardTrump
             VoiceEffect.OLD_MAN    -> binding.cardOldMan
             VoiceEffect.TELEPHONE  -> binding.cardTelephone
+            VoiceEffect.RVC_AI     -> return
         }
         selected.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_selected))
 
@@ -191,10 +287,11 @@ class MainActivity : AppCompatActivity() {
             VoiceEffect.ROBOT      -> "רובוט"
             VoiceEffect.ECHO       -> "הד"
             VoiceEffect.CHILD      -> "ילד"
-            VoiceEffect.BIBI       -> "ביבי"
-            VoiceEffect.TRUMP      -> "טראמפ"
+            VoiceEffect.BIBI       -> "ביבי (DSP)"
+            VoiceEffect.TRUMP      -> "טראמפ (DSP)"
             VoiceEffect.OLD_MAN    -> "זקן"
             VoiceEffect.TELEPHONE  -> "טלפון"
+            VoiceEffect.RVC_AI     -> "AI"
         }}"
     }
 
@@ -224,8 +321,7 @@ class MainActivity : AppCompatActivity() {
         startService(Intent(this, VoiceChangerService::class.java).apply {
             action = VoiceChangerService.ACTION_STOP
         })
-        isRunning = false
-        voiceService = null
+        isRunning = false; voiceService = null
         updateUI()
     }
 
@@ -233,7 +329,8 @@ class MainActivity : AppCompatActivity() {
         if (isRunning) {
             binding.btnStartStop.text = "עצור"
             binding.btnStartStop.backgroundTintList = ContextCompat.getColorStateList(this, R.color.stop_red)
-            binding.tvStatus.text = "פעיל - מעבד קול..."
+            binding.tvStatus.text = if (activeRvcModel != null)
+                "🤖 AI פעיל — ${activeRvcModel!!.name}" else "פעיל - מעבד קול..."
         } else {
             binding.btnStartStop.text = "התחל"
             binding.btnStartStop.backgroundTintList = ContextCompat.getColorStateList(this, R.color.start_green)

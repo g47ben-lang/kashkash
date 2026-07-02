@@ -45,4 +45,6 @@ dependencies {
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // ONNX Runtime for on-device AI voice inference
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.17.3'
 }

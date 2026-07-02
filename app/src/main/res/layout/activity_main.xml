@@ -430,6 +430,15 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- AI model buttons (populated dynamically) -->
+        <LinearLayout
+            android:id="@+id/rvcModelContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"/>
+
         <!-- Selected effect label -->
         <TextView
             android:id="@+id/tvSelectedEffect"
