@@ -1,11 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="80dp"
-    android:height="80dp"
-    android:viewportWidth="80"
-    android:viewportHeight="80">
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Background circle -->
     <path android:fillColor="#FF1A3A6B"
-        android:pathData="M40,40m-40,0a40,40 0 1,0 80,0a40,40 0 1,0 -80,0"/>
-    <path android:fillColor="#FF2A5A9B"
-        android:pathData="M40,15 C31,15 24,22 24,31 C24,37 27,42 32,45 C22,48 15,57 15,68 L65,68 C65,57 58,48 48,45 C53,42 56,37 56,31 C56,22 49,15 40,15Z"/>
+        android:pathData="M48,48m-48,0a48,48 0 1,0 96,0a48,48 0 1,0 -96,0"/>
+
+    <!-- Subtle gradient overlay -->
+    <path android:fillColor="#220A1F4A"
+        android:pathData="M48,0a48,48 0 0,1 48,48L0,48A48,48 0 0,1 48,0Z"/>
+
+    <!-- Neck -->
+    <path android:fillColor="#FFCBA47A"
+        android:pathData="M38,68 L58,68 L56,80 L40,80 Z"/>
+
+    <!-- Shirt / Suit -->
+    <path android:fillColor="#FF1A2744"
+        android:pathData="M20,96 Q20,80 30,76 Q38,82 48,83 Q58,82 66,76 Q76,80 76,96Z"/>
+
+    <!-- White shirt -->
+    <path android:fillColor="#FFEEEEEE"
+        android:pathData="M42,78 L48,83 L54,78 L52,96 L44,96Z"/>
+
+    <!-- Tie - blue -->
+    <path android:fillColor="#FF2962FF"
+        android:pathData="M46,79 L48,83 L50,79 L49,96 L47,96Z"/>
+
+    <!-- Face -->
+    <path android:fillColor="#FFD4945E"
+        android:pathData="M30,44 Q28,32 48,28 Q68,32 66,44 L64,64 Q60,72 48,73 Q36,72 32,64 Z"/>
+
+    <!-- Hair - dark grey/silver -->
+    <path android:fillColor="#FF3A3A3A"
+        android:pathData="M30,44 Q26,30 48,24 Q70,30 66,44 Q64,32 48,30 Q32,32 30,44Z"/>
+
+    <!-- Forehead hairline -->
+    <path android:fillColor="#FF444444"
+        android:pathData="M32,38 Q40,28 48,28 Q56,28 64,38 Q56,34 48,34 Q40,34 32,38Z"/>
+
+    <!-- Left eyebrow -->
+    <path android:fillColor="#FF222222"
+        android:pathData="M33,44 Q38,41 42,43 Q38,43 33,44Z"/>
+
+    <!-- Right eyebrow -->
+    <path android:fillColor="#FF222222"
+        android:pathData="M54,43 Q58,41 63,44 Q58,43 54,43Z"/>
+
+    <!-- Left eye white -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M33,46 Q37,44 41,46 Q37,49 33,46Z"/>
+
+    <!-- Right eye white -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M55,46 Q59,44 63,46 Q59,49 55,46Z"/>
+
+    <!-- Left iris -->
+    <path android:fillColor="#FF4A3520"
+        android:pathData="M37,47m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0"/>
+
+    <!-- Right iris -->
+    <path android:fillColor="#FF4A3520"
+        android:pathData="M59,47m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0"/>
+
+    <!-- Left pupil -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M37,47m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"/>
+
+    <!-- Right pupil -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M59,47m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"/>
+
+    <!-- Nose -->
+    <path android:fillColor="#FFBA7A50"
+        android:pathData="M44,52 Q48,60 52,52 Q50,58 48,59 Q46,58 44,52Z"/>
+
+    <!-- Mouth -->
+    <path android:fillColor="#FF8B4A3A"
+        android:pathData="M39,63 Q44,67 48,67 Q52,67 57,63 Q52,66 48,66 Q44,66 39,63Z"/>
+
+    <!-- Upper lip line -->
+    <path android:fillColor="#FF7A3A2A"
+        android:pathData="M40,62 Q44,64 48,64 Q52,64 56,62"/>
+
+    <!-- Ear left -->
+    <path android:fillColor="#FFCBA47A"
+        android:pathData="M28,47 Q24,51 26,56 Q29,60 32,57 Q30,53 30,49Z"/>
+
+    <!-- Ear right -->
+    <path android:fillColor="#FFCBA47A"
+        android:pathData="M68,47 Q72,51 70,56 Q67,60 64,57 Q66,53 66,49Z"/>
+
 </vector>

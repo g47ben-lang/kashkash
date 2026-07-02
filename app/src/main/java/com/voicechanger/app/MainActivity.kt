@@ -19,6 +19,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
+import android.widget.ImageView
+import android.graphics.BitmapFactory
+import android.graphics.BitmapShader
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Shader
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.Bitmap
 import androidx.core.content.ContextCompat
 import com.voicechanger.app.databinding.ActivityMainBinding
 import com.voicechanger.app.rvc.ModelManager
@@ -69,7 +77,37 @@ class MainActivity : AppCompatActivity() {
         highlightOutputButton(binding.btnOutEarpiece)
         updateSelectedLabel()
 
+        loadCircularPhoto(binding.imgBibi, R.drawable.photo_bibi, R.drawable.ic_bibi)
+        loadCircularPhoto(binding.imgTrump, R.drawable.photo_trump, R.drawable.ic_trump)
+
         Thread { refreshRvcModels() }.apply { isDaemon = true; start() }
+    }
+
+    // ── Photo loader ──────────────────────────────────────────────────────────
+
+    private fun loadCircularPhoto(view: ImageView, photoRes: Int, fallbackRes: Int) {
+        try {
+            val bmp = BitmapFactory.decodeResource(resources, photoRes) ?: throw Exception("not found")
+            view.setImageDrawable(circularBitmap(bmp))
+            view.clipToOutline = true
+            view.outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+            view.background = ContextCompat.getDrawable(this, R.drawable.circle_clip)
+        } catch (_: Exception) {
+            view.setImageResource(fallbackRes)
+        }
+    }
+
+    private fun circularBitmap(src: Bitmap): BitmapDrawable {
+        val size = minOf(src.width, src.height)
+        val x = (src.width - size) / 2
+        val y = (src.height - size) / 2
+        val cropped = Bitmap.createBitmap(src, x, y, size, size)
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.shader = BitmapShader(cropped, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        return BitmapDrawable(resources, output)
     }
 
     // ── AI model list ─────────────────────────────────────────────────────────
@@ -167,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                     || it.name.contains("netanyahu", ignoreCase = true) }
             if (bibi != null) activateRvcModel(bibi)
             else selectEffect(VoiceEffect.BIBI)
-            highlightAiCard(binding.cardBibi)
+            highlightAiCard(isbibi = true)
         }
         binding.cardTrump.setOnClickListener {
             val models = ModelManager.listModels(this)
@@ -175,17 +213,17 @@ class MainActivity : AppCompatActivity() {
                     || it.name.contains("טראמפ", ignoreCase = true) }
             if (trump != null) activateRvcModel(trump)
             else selectEffect(VoiceEffect.TRUMP)
-            highlightAiCard(binding.cardTrump)
+            highlightAiCard(isbibi = false)
         }
         binding.previewBibi.setOnClickListener { previewProcessor.preview(VoiceEffect.BIBI) }
         binding.previewTrump.setOnClickListener { previewProcessor.preview(VoiceEffect.TRUMP) }
     }
 
-    private fun highlightAiCard(active: CardView) {
-        binding.cardBibi.setCardBackgroundColor(ContextCompat.getColor(this,
-            if (active === binding.cardBibi) R.color.bibi_primary else R.color.bibi_dark))
-        binding.cardTrump.setCardBackgroundColor(ContextCompat.getColor(this,
-            if (active === binding.cardTrump) R.color.trump_primary else R.color.trump_dark))
+    private fun highlightAiCard(isbibi: Boolean) {
+        binding.cardBibi.background = ContextCompat.getDrawable(this,
+            if (isbibi) R.drawable.card_bibi_glow_active else R.drawable.card_bibi_glow)
+        binding.cardTrump.background = ContextCompat.getDrawable(this,
+            if (!isbibi) R.drawable.card_trump_glow_active else R.drawable.card_trump_glow)
     }
 
     // ── Quick DSP presets ─────────────────────────────────────────────────────
@@ -196,14 +234,14 @@ class MainActivity : AppCompatActivity() {
         binding.cardOldMan.setOnClickListener    { selectEffect(VoiceEffect.OLD_MAN) }
         binding.cardTelephone.setOnClickListener { selectEffect(VoiceEffect.TELEPHONE) }
 
-        // Hidden cards — keep wired for binding safety but no-op
-        binding.cardChipmunk.setOnClickListener  { selectEffect(VoiceEffect.CHIPMUNK) }
-        binding.cardDeep.setOnClickListener      { selectEffect(VoiceEffect.DEEP_VOICE) }
-        binding.cardRobot.setOnClickListener     { selectEffect(VoiceEffect.ROBOT) }
-        binding.cardEcho.setOnClickListener      { selectEffect(VoiceEffect.ECHO) }
+        // Hidden stubs — wired but invisible
+        binding.cardChipmunk.setOnClickListener  {}
+        binding.cardDeep.setOnClickListener      {}
+        binding.cardRobot.setOnClickListener     {}
+        binding.cardEcho.setOnClickListener      {}
     }
 
-    private val quickPresetCards get() = listOf(
+    private val quickPresetCards: List<CardView> get() = listOf(
         binding.cardNormal, binding.cardChild, binding.cardOldMan, binding.cardTelephone)
 
     private fun selectEffect(effect: VoiceEffect) {
@@ -214,8 +252,8 @@ class MainActivity : AppCompatActivity() {
         previewProcessor.currentEffect = effect
 
         // Reset AI card highlights
-        binding.cardBibi.setCardBackgroundColor(ContextCompat.getColor(this, R.color.bibi_dark))
-        binding.cardTrump.setCardBackgroundColor(ContextCompat.getColor(this, R.color.trump_dark))
+        binding.cardBibi.background  = ContextCompat.getDrawable(this, R.drawable.card_bibi_glow)
+        binding.cardTrump.background = ContextCompat.getDrawable(this, R.drawable.card_trump_glow)
 
         // Highlight active quick preset
         val presetMap = mapOf(

@@ -49,6 +49,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download real portrait photos (Wikimedia Commons – public domain)
+        run: |
+          mkdir -p app/src/main/res/drawable-xxhdpi
+          # Netanyahu – Israeli Government Press Office (public domain)
+          curl -fsSL \
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Benjamin_Netanyahu%2C_February_2023_%28cropped%29.jpg/400px-Benjamin_Netanyahu%2C_February_2023_%28cropped%29.jpg" \
+            -o app/src/main/res/drawable-xxhdpi/photo_bibi.jpg \
+            --retry 3 --retry-delay 2 || echo "Bibi photo download failed – using vector fallback"
+          # Trump – White House official portrait (US Gov = public domain)
+          curl -fsSL \
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Donald_Trump_official_portrait.jpg/400px-Donald_Trump_official_portrait.jpg" \
+            -o app/src/main/res/drawable-xxhdpi/photo_trump.jpg \
+            --retry 3 --retry-delay 2 || echo "Trump photo download failed – using vector fallback"
+          ls -lh app/src/main/res/drawable-xxhdpi/ || true
+
       - name: Download ONNX models from Release (if available)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

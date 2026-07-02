@@ -1,11 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="80dp"
-    android:height="80dp"
-    android:viewportWidth="80"
-    android:viewportHeight="80">
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Background circle -->
     <path android:fillColor="#FF6B1A1A"
-        android:pathData="M40,40m-40,0a40,40 0 1,0 80,0a40,40 0 1,0 -80,0"/>
-    <path android:fillColor="#FF9B3A2A"
-        android:pathData="M40,15 C31,15 24,22 24,31 C24,37 27,42 32,45 C22,48 15,57 15,68 L65,68 C65,57 58,48 48,45 C53,42 56,37 56,31 C56,22 49,15 40,15Z"/>
+        android:pathData="M48,48m-48,0a48,48 0 1,0 96,0a48,48 0 1,0 -96,0"/>
+
+    <!-- Gradient overlay -->
+    <path android:fillColor="#22400000"
+        android:pathData="M48,0a48,48 0 0,1 48,48L0,48A48,48 0 0,1 48,0Z"/>
+
+    <!-- Neck -->
+    <path android:fillColor="#FFCC8855"
+        android:pathData="M38,66 L58,66 L56,78 L40,78 Z"/>
+
+    <!-- Suit jacket dark -->
+    <path android:fillColor="#FF1A1A2A"
+        android:pathData="M16,96 Q18,78 30,74 Q38,80 48,81 Q58,80 66,74 Q78,78 80,96Z"/>
+
+    <!-- White shirt -->
+    <path android:fillColor="#FFEEEEEE"
+        android:pathData="M42,76 L48,81 L54,76 L52,96 L44,96Z"/>
+
+    <!-- Red tie (Trump signature) -->
+    <path android:fillColor="#FFCC0000"
+        android:pathData="M45,77 L48,81 L51,77 L50,96 L46,96Z"/>
+    <path android:fillColor="#FFEE1111"
+        android:pathData="M47,77 L48,81 L49,77Z"/>
+
+    <!-- Face - slightly orange tanned -->
+    <path android:fillColor="#FFD4845A"
+        android:pathData="M28,46 Q26,30 48,26 Q70,30 68,46 L66,62 Q62,71 48,72 Q34,71 30,62 Z"/>
+
+    <!-- Iconic Trump blonde/golden hair - swept back and poofy -->
+    <path android:fillColor="#FFD4A630"
+        android:pathData="M26,44 Q22,20 48,18 Q74,20 70,44 Q68,28 62,24 Q55,20 48,20 Q41,20 34,24 Q28,28 26,44Z"/>
+
+    <!-- Hair swoosh across forehead -->
+    <path android:fillColor="#FFC89820"
+        android:pathData="M26,42 Q30,30 48,28 Q38,30 32,36 Q28,39 26,42Z"/>
+
+    <!-- Hair right side sweep -->
+    <path android:fillColor="#FFD4A630"
+        android:pathData="M70,38 Q74,26 68,20 Q72,28 70,38Z"/>
+
+    <!-- Hair shadow -->
+    <path android:fillColor="#FFAA7A10"
+        android:pathData="M48,20 Q58,22 64,28 Q60,24 48,22Z"/>
+
+    <!-- Left eyebrow - thick blonde -->
+    <path android:fillColor="#FFAA8010"
+        android:pathData="M31,44 Q37,40 43,42 L42,44 Q37,42 31,44Z"/>
+
+    <!-- Right eyebrow -->
+    <path android:fillColor="#FFAA8010"
+        android:pathData="M53,42 Q59,40 65,44 L64,44 Q59,42 54,43Z"/>
+
+    <!-- Left eye white -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M32,47 Q36,44 41,46 Q37,49 32,47Z"/>
+
+    <!-- Right eye white -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M55,46 Q60,44 64,47 Q60,49 55,46Z"/>
+
+    <!-- Left iris - small blue-grey -->
+    <path android:fillColor="#FF6688AA"
+        android:pathData="M36,47m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0"/>
+
+    <!-- Right iris -->
+    <path android:fillColor="#FF6688AA"
+        android:pathData="M60,47m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0"/>
+
+    <!-- Pupils -->
+    <path android:fillColor="#FF111111"
+        android:pathData="M36,47m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"/>
+    <path android:fillColor="#FF111111"
+        android:pathData="M60,47m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"/>
+
+    <!-- Nose - prominent -->
+    <path android:fillColor="#FFBA6A40"
+        android:pathData="M43,52 Q48,62 53,52 Q51,60 48,61 Q45,60 43,52Z"/>
+
+    <!-- Signature mouth / pout -->
+    <path android:fillColor="#FF9A4A3A"
+        android:pathData="M37,63 Q40,62 44,63 Q48,65 52,63 Q56,62 59,63 Q55,68 48,68 Q41,68 37,63Z"/>
+
+    <!-- Upper lip pout -->
+    <path android:fillColor="#FF8A3A2A"
+        android:pathData="M39,62 Q44,60 48,62 Q52,60 57,62 Q52,64 48,63 Q44,64 39,62Z"/>
+
+    <!-- Ear left -->
+    <path android:fillColor="#FFCC8855"
+        android:pathData="M26,48 Q22,52 24,58 Q27,62 30,59 Q28,55 28,50Z"/>
+
+    <!-- Ear right -->
+    <path android:fillColor="#FFCC8855"
+        android:pathData="M70,48 Q74,52 72,58 Q69,62 66,59 Q68,55 68,50Z"/>
+
+    <!-- Face side shadow / jawline definition -->
+    <path android:fillColor="#22000000"
+        android:pathData="M28,52 Q30,65 36,70 L30,62Z"/>
+    <path android:fillColor="#22000000"
+        android:pathData="M68,52 Q66,65 60,70 L66,62Z"/>
+
 </vector>

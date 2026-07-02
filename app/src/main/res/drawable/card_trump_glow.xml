@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Glow halo -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#33AA2A1A"/>
+            <corners android:radius="20dp"/>
+        </shape>
+    </item>
+    <!-- Card body -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#FF3C0D0D"
+                android:centerColor="#FF551515"
+                android:endColor="#FF6B1A1A"
+                android:type="linear"/>
+            <stroke android:width="1.5dp" android:color="#FF9B3A2A"/>
+            <corners android:radius="20dp"/>
+        </shape>
+    </item>
+</layer-list>
