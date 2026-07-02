@@ -12,377 +12,542 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- ══ Header ═══════════════════════════════════════════════════════ -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Voice Changer"
-            android:textSize="28sp"
+            android:text="🎙 Voice AI"
+            android:textSize="26sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             android:gravity="center"
-            android:paddingTop="24dp"/>
+            android:paddingTop="20dp"
+            android:paddingBottom="4dp"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="שנה את קולך בזמן אמת"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textColor="@color/text_secondary"
             android:gravity="center"
-            android:paddingBottom="16dp"/>
+            android:paddingBottom="20dp"/>
 
-        <!-- Row 1: Normal + Chipmunk -->
+        <!-- ══ AI Voices — main section ═════════════════════════════════════ -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🤖 קולות בינה מלאכותית"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/accent_glow"
+            android:paddingBottom="10dp"/>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
+            android:layout_marginBottom="6dp">
 
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardNormal"
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                android:layout_marginRight="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Normal" android:textSize="12sp" android:textColor="@color/white"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="רגיל" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewNormal"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardChipmunk"
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                android:layout_marginLeft="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Chipmunk" android:textSize="12sp" android:textColor="@color/chipmunk_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="נמייה" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewChipmunk"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-        </LinearLayout>
-
-        <!-- Row 2: Deep + Robot -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardDeep"
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                android:layout_marginRight="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Deep Voice" android:textSize="12sp" android:textColor="@color/deep_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="קול עמוק" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewDeep"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardRobot"
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                android:layout_marginLeft="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Robot" android:textSize="12sp" android:textColor="@color/robot_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="רובוט" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewRobot"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-        </LinearLayout>
-
-        <!-- Row 3: Echo + Child -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardEcho"
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                android:layout_marginRight="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Echo" android:textSize="12sp" android:textColor="@color/echo_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="הד" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewEcho"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/cardChild"
-                android:layout_width="0dp"
-                android:layout_height="110dp"
-                android:layout_weight="1"
-                android:layout_marginLeft="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Child" android:textSize="12sp" android:textColor="@color/child_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="ילד" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewChild"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-        </LinearLayout>
-
-        <!-- Row 4: Bibi + Trump -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
-
+            <!-- Bibi card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardBibi"
                 android:layout_width="0dp"
-                android:layout_height="110dp"
+                android:layout_height="150dp"
                 android:layout_weight="1"
-                android:layout_marginRight="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Bibi" android:textSize="12sp" android:textColor="@color/bibi_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="ביבי" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewBibi"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
+                android:layout_marginEnd="6dp"
+                app:cardBackgroundColor="@color/bibi_dark"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="10dp">
+
+                    <ImageView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:src="@drawable/ic_bibi"
+                        android:scaleType="fitCenter"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ביבי"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:paddingTop="6dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Netanyahu"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_secondary"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AI"
+                        android:textSize="10sp"
+                        android:textColor="@color/accent_glow"
+                        android:background="@drawable/badge_bg"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:paddingTop="1dp"
+                        android:paddingBottom="1dp"
+                        android:layout_marginTop="4dp"/>
+
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- Trump card -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardTrump"
                 android:layout_width="0dp"
-                android:layout_height="110dp"
+                android:layout_height="150dp"
                 android:layout_weight="1"
-                android:layout_marginLeft="5dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
-                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Trump" android:textSize="12sp" android:textColor="@color/trump_color"
-                        android:textStyle="bold"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="טראמפ" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewTrump"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
+                android:layout_marginStart="6dp"
+                app:cardBackgroundColor="@color/trump_dark"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="10dp">
+
+                    <ImageView
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:src="@drawable/ic_trump"
+                        android:scaleType="fitCenter"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="טראמפ"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:paddingTop="6dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Trump"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_secondary"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AI"
+                        android:textSize="10sp"
+                        android:textColor="@color/trump_color"
+                        android:background="@drawable/badge_bg_red"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:paddingTop="1dp"
+                        android:paddingBottom="1dp"
+                        android:layout_marginTop="4dp"/>
+
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
         </LinearLayout>
 
-        <!-- Row 5: Old Man + Telephone -->
+        <!-- Preview buttons for AI cards -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
+            <Button
+                android:id="@+id/previewBibi"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="▶ שמע ביבי"
+                android:textSize="11sp"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/preview_btn"/>
+
+            <Button
+                android:id="@+id/previewTrump"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="▶ שמע טראמפ"
+                android:textSize="11sp"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/preview_btn"/>
+
+        </LinearLayout>
+
+        <!-- AI model loader container (populated dynamically) -->
+        <LinearLayout
+            android:id="@+id/rvcModelContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"/>
+
+        <!-- ══ Manual voice controls ═════════════════════════════════════════ -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/card_bg"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🎛 כוונון קול ידני"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_purple"
+                    android:paddingBottom="12dp"/>
+
+                <!-- Pitch slider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="גובה קול"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_primary"/>
+
+                    <TextView
+                        android:id="@+id/tvPitchValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="13sp"
+                        android:textColor="@color/accent_glow"
+                        android:minWidth="40dp"
+                        android:gravity="end"/>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="עבה"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_hint"/>
+
+                    <SeekBar
+                        android:id="@+id/seekbarPitch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="24"
+                        android:progress="12"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="דק"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_hint"/>
+
+                </LinearLayout>
+
+                <!-- Echo slider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="הד / Echo"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_primary"/>
+
+                    <TextView
+                        android:id="@+id/tvEchoValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="13sp"
+                        android:textColor="@color/accent_glow"
+                        android:minWidth="40dp"
+                        android:gravity="end"/>
+
+                </LinearLayout>
+
+                <SeekBar
+                    android:id="@+id/seekbarEcho"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="0"
+                    android:paddingBottom="12dp"/>
+
+                <!-- Robot effect slider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="רובוט / Robot"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_primary"/>
+
+                    <TextView
+                        android:id="@+id/tvRobotValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="13sp"
+                        android:textColor="@color/accent_glow"
+                        android:minWidth="40dp"
+                        android:gravity="end"/>
+
+                </LinearLayout>
+
+                <SeekBar
+                    android:id="@+id/seekbarRobot"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="0"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ══ Quick DSP presets ═════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚡ אפקטים מהירים"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:paddingBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardNormal"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:gravity="center" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="🎤" android:textSize="18sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="רגיל" android:textSize="11sp" android:textColor="@color/white"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardChild"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+                    android:gravity="center" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="👦" android:textSize="18sp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="ילד" android:textSize="11sp" android:textColor="@color/white"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardOldMan"
                 android:layout_width="0dp"
-                android:layout_height="110dp"
+                android:layout_height="64dp"
                 android:layout_weight="1"
-                android:layout_marginRight="5dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
                 app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
+                    android:gravity="center" android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Old Man" android:textSize="12sp" android:textColor="@color/oldman_color"
-                        android:textStyle="bold"/>
+                        android:text="👴" android:textSize="18sp"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="זקן" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewOldMan"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
+                        android:text="זקן" android:textSize="11sp" android:textColor="@color/white"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardTelephone"
                 android:layout_width="0dp"
-                android:layout_height="110dp"
+                android:layout_height="64dp"
                 android:layout_weight="1"
-                android:layout_marginLeft="5dp"
+                android:layout_marginStart="4dp"
                 app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-                    android:orientation="vertical" android:gravity="center">
+                    android:gravity="center" android:orientation="vertical">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Telephone" android:textSize="12sp" android:textColor="@color/telephone_color"
-                        android:textStyle="bold"/>
+                        android:text="📞" android:textSize="18sp"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="טלפון" android:textSize="17sp" android:textColor="@color/white"
-                        android:paddingBottom="4dp"/>
-                    <Button android:id="@+id/previewTelephone"
-                        android:layout_width="wrap_content" android:layout_height="28dp"
-                        android:text="▶ שמע" android:textSize="10sp" android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn" android:paddingLeft="10dp" android:paddingRight="10dp"/>
+                        android:text="טלפון" android:textSize="11sp" android:textColor="@color/white"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+        </LinearLayout>
+
+        <!-- Hidden cards kept for binding compatibility -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone">
+            <androidx.cardview.widget.CardView android:id="@+id/cardChipmunk"
+                android:layout_width="1dp" android:layout_height="1dp"/>
+            <androidx.cardview.widget.CardView android:id="@+id/cardDeep"
+                android:layout_width="1dp" android:layout_height="1dp"/>
+            <androidx.cardview.widget.CardView android:id="@+id/cardRobot"
+                android:layout_width="1dp" android:layout_height="1dp"/>
+            <androidx.cardview.widget.CardView android:id="@+id/cardEcho"
+                android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewNormal" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewChipmunk" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewDeep" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewRobot" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewEcho" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewChild" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewOldMan" android:layout_width="1dp" android:layout_height="1dp"/>
+            <Button android:id="@+id/previewTelephone" android:layout_width="1dp" android:layout_height="1dp"/>
+            <SeekBar android:id="@+id/seekbarIntensity" android:layout_width="1dp" android:layout_height="1dp"/>
         </LinearLayout>
 
         <!-- ══ Device selection ══════════════════════════════════════════════ -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
             app:cardBackgroundColor="@color/card_bg"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="14dp">
 
-                <!-- Microphone row -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🎙 קלט מיקרופון"
-                    android:textSize="13sp"
+                    android:text="🎧 התקנים"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_blue"
+                    android:paddingBottom="10dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="מיקרופון"
+                    android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:paddingBottom="6dp"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
 
                     <Button
                         android:id="@+id/btnMicMain"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:layout_marginRight="4dp"
+                        android:layout_marginEnd="4dp"
                         android:text="📱 טלפון"
                         android:textSize="12sp"
                         android:textColor="@color/white"
-                        android:backgroundTint="@color/purple_500"/>
+                        android:backgroundTint="@color/btn_device"/>
 
                     <Button
                         android:id="@+id/btnMicComm"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:layout_marginLeft="4dp"
+                        android:layout_marginStart="4dp"
                         android:text="🎧 אוזניה"
                         android:textSize="12sp"
                         android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn"/>
+                        android:backgroundTint="@color/btn_device"/>
 
                 </LinearLayout>
 
-                <!-- Divider -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="@color/card_stroke_default"
-                    android:layout_marginTop="10dp"
+                    android:background="@color/divider"
                     android:layout_marginBottom="10dp"/>
 
-                <!-- Output row -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🔊 יציאת שמע"
-                    android:textSize="13sp"
+                    android:text="יציאת שמע"
+                    android:textSize="12sp"
                     android:textColor="@color/text_secondary"
                     android:paddingBottom="6dp"/>
 
@@ -394,97 +559,63 @@
                     <Button
                         android:id="@+id/btnOutEarpiece"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:layout_marginRight="4dp"
-                        android:text="אוזנייה"
+                        android:layout_marginEnd="4dp"
+                        android:text="👂 אוזן"
                         android:textSize="11sp"
                         android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn"/>
+                        android:backgroundTint="@color/btn_device"/>
 
                     <Button
                         android:id="@+id/btnOutSpeaker"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:layout_marginLeft="4dp"
-                        android:layout_marginRight="4dp"
-                        android:text="רמקול"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:text="🔊 רמקול"
                         android:textSize="11sp"
                         android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn"/>
+                        android:backgroundTint="@color/btn_device"/>
 
                     <Button
                         android:id="@+id/btnOutBluetooth"
                         android:layout_width="0dp"
-                        android:layout_height="36dp"
+                        android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:layout_marginLeft="4dp"
-                        android:text="BT"
+                        android:layout_marginStart="4dp"
+                        android:text="🔵 BT"
                         android:textSize="11sp"
                         android:textColor="@color/white"
-                        android:backgroundTint="@color/preview_btn"/>
+                        android:backgroundTint="@color/btn_device"/>
 
                 </LinearLayout>
-
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- AI model buttons (populated dynamically) -->
-        <LinearLayout
-            android:id="@+id/rvcModelContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="12dp"
-            android:visibility="gone"/>
-
-        <!-- Selected effect label -->
+        <!-- ══ Status + Start/Stop ══════════════════════════════════════════ -->
         <TextView
             android:id="@+id/tvSelectedEffect"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="אפקט: רגיל"
-            android:textSize="15sp"
-            android:textColor="@color/purple_200"
-            android:gravity="center"
-            android:paddingBottom="6dp"/>
-
-        <!-- Intensity SeekBar -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="עוצמה / Intensity"
+            android:text="מצב: רגיל"
             android:textSize="13sp"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/accent_glow"
             android:gravity="center"
-            android:paddingTop="4dp"/>
+            android:paddingBottom="8dp"/>
 
-        <SeekBar
-            android:id="@+id/seekbarIntensity"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="18"
-            android:progress="8"
-            android:layout_marginLeft="16dp"
-            android:layout_marginRight="16dp"
-            android:layout_marginBottom="20dp"/>
-
-        <!-- Start/Stop button -->
         <Button
             android:id="@+id/btnStartStop"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="58dp"
             android:text="התחל"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             android:backgroundTint="@color/start_green"
-            android:layout_marginLeft="16dp"
-            android:layout_marginRight="16dp"
-            android:layout_marginBottom="12dp"/>
+            android:layout_marginBottom="10dp"/>
 
-        <!-- Status -->
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
@@ -492,6 +623,53 @@
             android:text="לחץ התחל להפעלה"
             android:textSize="13sp"
             android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:paddingBottom="20dp"/>
+
+        <!-- ══ About section ═════════════════════════════════════════════════ -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"
+            android:layout_marginBottom="14dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="אודות"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:paddingBottom="4dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="פותח על-ידי"
+            android:textSize="12sp"
+            android:textColor="@color/text_hint"
+            android:gravity="center"/>
+
+        <TextView
+            android:id="@+id/tvDeveloper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="חו&#x22;ב"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/accent_purple"
+            android:gravity="center"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"/>
+
+        <TextView
+            android:id="@+id/tvEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✉ g47ben@gmail.com"
+            android:textSize="13sp"
+            android:textColor="@color/accent_blue"
             android:gravity="center"
             android:paddingBottom="28dp"/>
 

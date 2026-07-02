@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -39,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             voiceService = (binder as VoiceChangerService.LocalBinder).getService()
             isBound = true
-            voiceService?.audioProcessor?.currentEffect = selectedEffect
+            applyCurrentSettingsToProcessor(voiceService!!.audioProcessor)
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             voiceService = null
@@ -49,7 +50,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_PERMISSIONS = 100
-        private fun seekbarToIntensity(progress: Int): Float = 0.2f + progress * 0.1f
+        private const val DEVELOPER_EMAIL    = "g47ben@gmail.com"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,16 +58,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupEffectCards()
-        setupPreviewButtons()
+        setupAiCards()
+        setupQuickPresets()
         setupDeviceButtons()
         setupStartStopButton()
-        setupSeekBar()
-        selectEffect(VoiceEffect.NORMAL)
+        setupManualSliders()
+        setupAbout()
+
         highlightMicButton(binding.btnMicMain)
         highlightOutputButton(binding.btnOutEarpiece)
+        updateSelectedLabel()
 
-        // Load AI models on background thread
         Thread { refreshRvcModels() }.apply { isDaemon = true; start() }
     }
 
@@ -89,14 +91,6 @@ class MainActivity : AppCompatActivity() {
 
         container.visibility = View.VISIBLE
 
-        val header = TextView(this).apply {
-            text = "🤖 קולות AI (מודלים אמיתיים)"
-            textSize = 13f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-            setPadding(0, 0, 0, 8)
-        }
-        container.addView(header)
-
         if (!hubertReady) {
             val msg = TextView(this).apply {
                 text = "⚠️ חסר hubert.onnx\n${ModelManager.installPathInstructions(this@MainActivity)}"
@@ -108,19 +102,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (models.isEmpty()) {
-            val msg = TextView(this).apply {
-                text = "לא נמצאו מודלים.\n${ModelManager.installPathInstructions(this@MainActivity)}"
-                textSize = 11f
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-            }
-            container.addView(msg)
+            container.visibility = View.GONE
             return
         }
 
-        // One button per model
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         container.addView(row)
 
         for (model in models) {
@@ -137,7 +123,6 @@ class MainActivity : AppCompatActivity() {
             row.addView(btn)
         }
 
-        // "DSP" button to go back to regular effects
         val dspBtn = Button(this).apply {
             text = "DSP"
             textSize = 11f
@@ -152,7 +137,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun activateRvcModel(model: RvcModel) {
         activeRvcModel = model
-        binding.tvSelectedEffect.text = "🤖 AI: ${model.name}"
+        selectedEffect = VoiceEffect.RVC_AI
+        updateSelectedLabel()
         Toast.makeText(this, "טוען מודל ${model.name}…", Toast.LENGTH_SHORT).show()
 
         val hubertPath = ModelManager.hubertPath(this)
@@ -171,32 +157,141 @@ class MainActivity : AppCompatActivity() {
         selectEffect(VoiceEffect.NORMAL)
     }
 
-    // ── Effect cards ──────────────────────────────────────────────────────────
+    // ── AI Cards ──────────────────────────────────────────────────────────────
 
-    private fun setupEffectCards() {
+    private fun setupAiCards() {
+        binding.cardBibi.setOnClickListener {
+            val models = ModelManager.listModels(this)
+            val bibi = models.firstOrNull { it.name.contains("bibi", ignoreCase = true)
+                    || it.name.contains("ביבי", ignoreCase = true)
+                    || it.name.contains("netanyahu", ignoreCase = true) }
+            if (bibi != null) activateRvcModel(bibi)
+            else selectEffect(VoiceEffect.BIBI)
+            highlightAiCard(binding.cardBibi)
+        }
+        binding.cardTrump.setOnClickListener {
+            val models = ModelManager.listModels(this)
+            val trump = models.firstOrNull { it.name.contains("trump", ignoreCase = true)
+                    || it.name.contains("טראמפ", ignoreCase = true) }
+            if (trump != null) activateRvcModel(trump)
+            else selectEffect(VoiceEffect.TRUMP)
+            highlightAiCard(binding.cardTrump)
+        }
+        binding.previewBibi.setOnClickListener { previewProcessor.preview(VoiceEffect.BIBI) }
+        binding.previewTrump.setOnClickListener { previewProcessor.preview(VoiceEffect.TRUMP) }
+    }
+
+    private fun highlightAiCard(active: CardView) {
+        binding.cardBibi.setCardBackgroundColor(ContextCompat.getColor(this,
+            if (active === binding.cardBibi) R.color.bibi_primary else R.color.bibi_dark))
+        binding.cardTrump.setCardBackgroundColor(ContextCompat.getColor(this,
+            if (active === binding.cardTrump) R.color.trump_primary else R.color.trump_dark))
+    }
+
+    // ── Quick DSP presets ─────────────────────────────────────────────────────
+
+    private fun setupQuickPresets() {
         binding.cardNormal.setOnClickListener    { selectEffect(VoiceEffect.NORMAL) }
+        binding.cardChild.setOnClickListener     { selectEffect(VoiceEffect.CHILD) }
+        binding.cardOldMan.setOnClickListener    { selectEffect(VoiceEffect.OLD_MAN) }
+        binding.cardTelephone.setOnClickListener { selectEffect(VoiceEffect.TELEPHONE) }
+
+        // Hidden cards — keep wired for binding safety but no-op
         binding.cardChipmunk.setOnClickListener  { selectEffect(VoiceEffect.CHIPMUNK) }
         binding.cardDeep.setOnClickListener      { selectEffect(VoiceEffect.DEEP_VOICE) }
         binding.cardRobot.setOnClickListener     { selectEffect(VoiceEffect.ROBOT) }
         binding.cardEcho.setOnClickListener      { selectEffect(VoiceEffect.ECHO) }
-        binding.cardChild.setOnClickListener     { selectEffect(VoiceEffect.CHILD) }
-        binding.cardBibi.setOnClickListener      { selectEffect(VoiceEffect.BIBI) }
-        binding.cardTrump.setOnClickListener     { selectEffect(VoiceEffect.TRUMP) }
-        binding.cardOldMan.setOnClickListener    { selectEffect(VoiceEffect.OLD_MAN) }
-        binding.cardTelephone.setOnClickListener { selectEffect(VoiceEffect.TELEPHONE) }
     }
 
-    private fun setupPreviewButtons() {
-        binding.previewNormal.setOnClickListener    { previewProcessor.preview(VoiceEffect.NORMAL) }
-        binding.previewChipmunk.setOnClickListener  { previewProcessor.preview(VoiceEffect.CHIPMUNK) }
-        binding.previewDeep.setOnClickListener      { previewProcessor.preview(VoiceEffect.DEEP_VOICE) }
-        binding.previewRobot.setOnClickListener     { previewProcessor.preview(VoiceEffect.ROBOT) }
-        binding.previewEcho.setOnClickListener      { previewProcessor.preview(VoiceEffect.ECHO) }
-        binding.previewChild.setOnClickListener     { previewProcessor.preview(VoiceEffect.CHILD) }
-        binding.previewBibi.setOnClickListener      { previewProcessor.preview(VoiceEffect.BIBI) }
-        binding.previewTrump.setOnClickListener     { previewProcessor.preview(VoiceEffect.TRUMP) }
-        binding.previewOldMan.setOnClickListener    { previewProcessor.preview(VoiceEffect.OLD_MAN) }
-        binding.previewTelephone.setOnClickListener { previewProcessor.preview(VoiceEffect.TELEPHONE) }
+    private val quickPresetCards get() = listOf(
+        binding.cardNormal, binding.cardChild, binding.cardOldMan, binding.cardTelephone)
+
+    private fun selectEffect(effect: VoiceEffect) {
+        selectedEffect = effect
+        activeRvcModel = null
+        voiceService?.audioProcessor?.clearRvcModel()
+        voiceService?.audioProcessor?.currentEffect = effect
+        previewProcessor.currentEffect = effect
+
+        // Reset AI card highlights
+        binding.cardBibi.setCardBackgroundColor(ContextCompat.getColor(this, R.color.bibi_dark))
+        binding.cardTrump.setCardBackgroundColor(ContextCompat.getColor(this, R.color.trump_dark))
+
+        // Highlight active quick preset
+        val presetMap = mapOf(
+            VoiceEffect.NORMAL    to binding.cardNormal,
+            VoiceEffect.CHILD     to binding.cardChild,
+            VoiceEffect.OLD_MAN   to binding.cardOldMan,
+            VoiceEffect.TELEPHONE to binding.cardTelephone
+        )
+        quickPresetCards.forEach { it.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_bg)) }
+        presetMap[effect]?.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_selected))
+
+        updateSelectedLabel()
+    }
+
+    private fun updateSelectedLabel() {
+        binding.tvSelectedEffect.text = when {
+            activeRvcModel != null -> "מצב: 🤖 AI — ${activeRvcModel!!.name}"
+            else -> "מצב: ${when (selectedEffect) {
+                VoiceEffect.NORMAL     -> "רגיל"
+                VoiceEffect.CHIPMUNK   -> "נמייה"
+                VoiceEffect.DEEP_VOICE -> "קול עמוק"
+                VoiceEffect.ROBOT      -> "רובוט"
+                VoiceEffect.ECHO       -> "הד"
+                VoiceEffect.CHILD      -> "ילד"
+                VoiceEffect.BIBI       -> "ביבי (DSP)"
+                VoiceEffect.TRUMP      -> "טראמפ (DSP)"
+                VoiceEffect.OLD_MAN    -> "זקן"
+                VoiceEffect.TELEPHONE  -> "טלפון"
+                VoiceEffect.RVC_AI     -> "AI"
+            }}"
+        }
+    }
+
+    // ── Manual sliders ────────────────────────────────────────────────────────
+
+    private fun setupManualSliders() {
+        binding.seekbarPitch.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                val semitones = progress - 12  // -12 .. +12
+                binding.tvPitchValue.text = if (semitones == 0) "0" else "%+d".format(semitones)
+                val shift = semitones.toFloat()
+                voiceService?.audioProcessor?.manualPitchSemitones = shift
+                previewProcessor.manualPitchSemitones = shift
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
+        binding.seekbarEcho.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.tvEchoValue.text = "$progress%"
+                val mix = progress / 100f
+                voiceService?.audioProcessor?.manualEchoMix = mix
+                previewProcessor.manualEchoMix = mix
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
+        binding.seekbarRobot.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                binding.tvRobotValue.text = "$progress%"
+                val mix = progress / 100f
+                voiceService?.audioProcessor?.manualRobotMix = mix
+                previewProcessor.manualRobotMix = mix
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+    }
+
+    private fun applyCurrentSettingsToProcessor(proc: AudioProcessor) {
+        proc.currentEffect = selectedEffect
+        proc.manualPitchSemitones = (binding.seekbarPitch.progress - 12).toFloat()
+        proc.manualEchoMix        = binding.seekbarEcho.progress  / 100f
+        proc.manualRobotMix       = binding.seekbarRobot.progress / 100f
     }
 
     // ── Device buttons ────────────────────────────────────────────────────────
@@ -239,60 +334,15 @@ class MainActivity : AppCompatActivity() {
     private fun highlightMicButton(active: Button) {
         micButtons.forEach {
             it.backgroundTintList = ContextCompat.getColorStateList(this,
-                if (it === active) R.color.purple_500 else R.color.preview_btn)
+                if (it === active) R.color.btn_device_active else R.color.btn_device)
         }
     }
 
     private fun highlightOutputButton(active: Button) {
         outputButtons.forEach {
             it.backgroundTintList = ContextCompat.getColorStateList(this,
-                if (it === active) R.color.teal_700 else R.color.preview_btn)
+                if (it === active) R.color.btn_device_active else R.color.btn_device)
         }
-    }
-
-    // ── Effect selection ──────────────────────────────────────────────────────
-
-    private fun selectEffect(effect: VoiceEffect) {
-        selectedEffect = effect
-        activeRvcModel = null
-        voiceService?.audioProcessor?.clearRvcModel()
-        voiceService?.audioProcessor?.currentEffect = effect
-
-        val allCards = listOf(
-            binding.cardNormal, binding.cardChipmunk, binding.cardDeep,
-            binding.cardRobot, binding.cardEcho, binding.cardChild,
-            binding.cardBibi, binding.cardTrump, binding.cardOldMan, binding.cardTelephone
-        )
-        allCards.forEach { it.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_bg)) }
-
-        val selected: CardView = when (effect) {
-            VoiceEffect.NORMAL     -> binding.cardNormal
-            VoiceEffect.CHIPMUNK   -> binding.cardChipmunk
-            VoiceEffect.DEEP_VOICE -> binding.cardDeep
-            VoiceEffect.ROBOT      -> binding.cardRobot
-            VoiceEffect.ECHO       -> binding.cardEcho
-            VoiceEffect.CHILD      -> binding.cardChild
-            VoiceEffect.BIBI       -> binding.cardBibi
-            VoiceEffect.TRUMP      -> binding.cardTrump
-            VoiceEffect.OLD_MAN    -> binding.cardOldMan
-            VoiceEffect.TELEPHONE  -> binding.cardTelephone
-            VoiceEffect.RVC_AI     -> return
-        }
-        selected.setCardBackgroundColor(ContextCompat.getColor(this, R.color.card_selected))
-
-        binding.tvSelectedEffect.text = "אפקט: ${when (effect) {
-            VoiceEffect.NORMAL     -> "רגיל"
-            VoiceEffect.CHIPMUNK   -> "נמייה"
-            VoiceEffect.DEEP_VOICE -> "קול עמוק"
-            VoiceEffect.ROBOT      -> "רובוט"
-            VoiceEffect.ECHO       -> "הד"
-            VoiceEffect.CHILD      -> "ילד"
-            VoiceEffect.BIBI       -> "ביבי (DSP)"
-            VoiceEffect.TRUMP      -> "טראמפ (DSP)"
-            VoiceEffect.OLD_MAN    -> "זקן"
-            VoiceEffect.TELEPHONE  -> "טלפון"
-            VoiceEffect.RVC_AI     -> "AI"
-        }}"
     }
 
     // ── Start / stop ──────────────────────────────────────────────────────────
@@ -330,7 +380,7 @@ class MainActivity : AppCompatActivity() {
             binding.btnStartStop.text = "עצור"
             binding.btnStartStop.backgroundTintList = ContextCompat.getColorStateList(this, R.color.stop_red)
             binding.tvStatus.text = if (activeRvcModel != null)
-                "🤖 AI פעיל — ${activeRvcModel!!.name}" else "פעיל - מעבד קול..."
+                "🤖 AI פעיל — ${activeRvcModel!!.name}" else "פעיל — מעבד קול..."
         } else {
             binding.btnStartStop.text = "התחל"
             binding.btnStartStop.backgroundTintList = ContextCompat.getColorStateList(this, R.color.start_green)
@@ -338,18 +388,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ── SeekBar ───────────────────────────────────────────────────────────────
+    // ── About ─────────────────────────────────────────────────────────────────
 
-    private fun setupSeekBar() {
-        binding.seekbarIntensity.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                val lvl = seekbarToIntensity(progress)
-                voiceService?.audioProcessor?.intensity = lvl
-                previewProcessor.intensity = lvl
-            }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
-        })
+    private fun setupAbout() {
+        val emailClick = View.OnClickListener {
+            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$DEVELOPER_EMAIL"))
+            intent.putExtra(Intent.EXTRA_SUBJECT, "Voice AI App")
+            startActivity(Intent.createChooser(intent, "שלח מייל"))
+        }
+        binding.tvDeveloper.setOnClickListener(emailClick)
+        binding.tvEmail.setOnClickListener(emailClick)
     }
 
     // ── Permissions ───────────────────────────────────────────────────────────

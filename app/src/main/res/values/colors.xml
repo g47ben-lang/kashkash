@@ -1,31 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
 
-    <!-- App-specific colors -->
-    <color name="background_dark">#FF121212</color>
-    <color name="card_bg">#FF1E1E2E</color>
-    <color name="card_selected">#FF2E2050</color>
-    <color name="card_stroke_default">#FF2A2A3A</color>
-    <color name="text_secondary">#FF9E9E9E</color>
-    <color name="start_green">#FF2E7D32</color>
-    <color name="stop_red">#FFC62828</color>
-    <color name="preview_btn">#FF37474F</color>
+    <!-- Backgrounds -->
+    <color name="background_dark">#FF0D0D1A</color>
+    <color name="card_bg">#FF161627</color>
+    <color name="card_selected">#FF252545</color>
+    <color name="card_stroke_default">#FF2A2A4A</color>
+    <color name="surface">#FF1A1A2E</color>
 
-    <!-- Effect label colors -->
-    <color name="chipmunk_color">#FFFFB300</color>
-    <color name="deep_color">#FF1565C0</color>
-    <color name="robot_color">#FF00BCD4</color>
-    <color name="echo_color">#FF7B1FA2</color>
-    <color name="child_color">#FFFF80AB</color>
+    <!-- Text -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFB0B0CC</color>
+    <color name="text_hint">#FF606080</color>
+
+    <!-- Accents -->
+    <color name="accent_purple">#FF7C5CBF</color>
+    <color name="accent_blue">#FF4A90D9</color>
+    <color name="accent_glow">#FF9B7FE8</color>
+
+    <!-- AI Voice cards -->
+    <color name="bibi_primary">#FF1A3A6B</color>
+    <color name="bibi_dark">#FF0D1F3C</color>
+    <color name="trump_primary">#FF6B1A1A</color>
+    <color name="trump_dark">#FF3C0D0D</color>
+
+    <!-- Buttons -->
+    <color name="start_green">#FF1B5E20</color>
+    <color name="start_green_light">#FF2E7D32</color>
+    <color name="stop_red">#FF7F0000</color>
+    <color name="stop_red_light">#FFC62828</color>
+    <color name="preview_btn">#FF2A2A4A</color>
+    <color name="btn_device">#FF1E1E38</color>
+    <color name="btn_device_active">#FF3A2D70</color>
+
+    <!-- Misc -->
+    <color name="divider">#FF2A2A4A</color>
+    <color name="slider_track">#FF2A2A4A</color>
     <color name="bibi_color">#FF2196F3</color>
     <color name="trump_color">#FFFF5722</color>
-    <color name="oldman_color">#FF8D6E63</color>
-    <color name="telephone_color">#FF607D8B</color>
+    <color name="preview_btn_text">#FFB0B0CC</color>
 </resources>

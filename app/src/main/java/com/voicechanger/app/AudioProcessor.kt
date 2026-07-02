@@ -49,10 +49,13 @@ class AudioProcessor(private val context: Context) {
     private var echoCanceler:    AcousticEchoCanceler? = null
     private var noiseSuppressor: NoiseSuppressor?      = null
 
-    @Volatile var currentEffect: VoiceEffect = VoiceEffect.NORMAL
-    @Volatile var intensity:     Float       = 1.0f
-    @Volatile var micSource:     MicSource   = MicSource.COMMUNICATION
-    @Volatile var outputMode:    OutputMode  = OutputMode.EARPIECE
+    @Volatile var currentEffect:        VoiceEffect = VoiceEffect.NORMAL
+    @Volatile var intensity:            Float       = 1.0f
+    @Volatile var micSource:            MicSource   = MicSource.PHONE
+    @Volatile var outputMode:           OutputMode  = OutputMode.EARPIECE
+    @Volatile var manualPitchSemitones: Float       = 0f   // -12..+12
+    @Volatile var manualEchoMix:        Float       = 0f   // 0..1
+    @Volatile var manualRobotMix:       Float       = 0f   // 0..1
 
     // Active RVC model (null = use DSP effects)
     @Volatile private var rvcEngine: RvcEngine? = null
@@ -120,6 +123,7 @@ class AudioProcessor(private val context: Context) {
                         try { rvcEngine!!.process(chunk) } catch (_: Exception) { chunk }
                     } else {
                         applyDspEffect(chunk, currentEffect, intensity)
+                            .let { applyManualEffects(it) }
                     }
                     audioTrack?.write(out, 0, out.size)
                 }
@@ -206,6 +210,25 @@ class AudioProcessor(private val context: Context) {
             VoiceEffect.TELEPHONE  -> TelephoneEffect.apply(input, sampleRate)
             VoiceEffect.RVC_AI     -> input  // handled above
         }
+
+    private fun applyManualEffects(input: ShortArray): ShortArray {
+        var out = input
+        if (manualPitchSemitones != 0f) {
+            val ratio = Math.pow(2.0, manualPitchSemitones / 12.0).toFloat()
+            out = PitchShifter.shift(out, ratio)
+        }
+        if (manualEchoMix > 0f)  out = EchoEffect.apply(out, manualEchoMix * 0.7f)
+        if (manualRobotMix > 0f) out = blendRobot(out, manualRobotMix)
+        return out
+    }
+
+    private fun blendRobot(input: ShortArray, mix: Float): ShortArray {
+        val robot  = RobotEffect.apply(input, sampleRate, 80f + mix * 120f)
+        val dry    = 1f - mix
+        return ShortArray(input.size) { i ->
+            (input[i] * dry + robot[i] * mix).toInt().coerceIn(-32768, 32767).toShort()
+        }
+    }
 
     // ── Preview signal generator ──────────────────────────────────────────────
 
