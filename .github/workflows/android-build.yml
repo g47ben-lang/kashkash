@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ "**" ]
 
-  # מאפשר הרצה ידנית מלשונית Actions עם בחירת פרמטרים
   workflow_dispatch:
     inputs:
       build_type:
@@ -39,7 +38,7 @@ on:
           - 'false'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -72,14 +71,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # מוריד Gradle ומייצר gradlew אוטומטית - פותר את שגיאת "gradlew not found"
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.4'
           cache-read-only: false
 
-      # דריסת משתנים אם הוגדרו ידנית ב-workflow_dispatch
       - name: Override build variables (manual run only)
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -93,7 +90,6 @@ jobs:
           if [ -n "${{ github.event.inputs.min_sdk }}" ]; then
             sed -i "s/^APP_MIN_SDK=.*/APP_MIN_SDK=${{ github.event.inputs.min_sdk }}/" $PROPS_FILE
           fi
-          echo "--- gradle.properties after override ---"
           cat $PROPS_FILE
 
       - name: Run unit tests
@@ -108,18 +104,45 @@ jobs:
         if: github.event.inputs.build_type == 'release'
         run: gradle assembleRelease
 
-      - name: Upload Debug APK
-        if: github.event.inputs.build_type != 'release'
-        uses: actions/upload-artifact@v4
-        with:
-          name: voice-changer-debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 14
+      # ── פרסום ה-APK ב-Release ציבורי (ניתן להורדה ללא התחברות) ──────────
+      - name: Publish APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="apk-latest"
+          VERSION=$(grep APP_VERSION_NAME gradle.properties | cut -d= -f2)
 
-      - name: Upload Release APK
-        if: github.event.inputs.build_type == 'release'
+          gh release delete "$TAG" --repo ${{ github.repository }} --yes 2>/dev/null || true
+          gh release create "$TAG" \
+            --repo ${{ github.repository }} \
+            --title "Voice Changer APK v${VERSION}" \
+            --notes "בנייה אוטומטית מ-commit $(git rev-parse --short HEAD).
+
+## הורדה והתקנה
+1. לחץ על הקובץ למטה להורדה
+2. בטלפון: הגדרות → אבטחה → אפשר התקנה ממקורות לא ידועים
+3. פתח את קובץ ה-APK שהורדת והתקן
+
+## קולות AI (ביבי / טראמפ)
+הקולות כלולים בחבילה ויופיעו אוטומטית בפתיחת האפליקציה." \
+            --prerelease
+
+          # Upload whichever APK was built
+          find app/build/outputs/apk -name "*.apk" | while read apk; do
+            echo "Uploading $apk..."
+            gh release upload "$TAG" "$apk" \
+              --repo ${{ github.repository }} \
+              --clobber
+          done
+
+          echo ""
+          echo "✅ APK זמין להורדה ציבורית:"
+          echo "https://github.com/${{ github.repository }}/releases/tag/$TAG"
+
+      # שמירת Artifact גם כן (גיבוי)
+      - name: Upload APK as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: voice-changer-release-${{ github.run_number }}
-          path: app/build/outputs/apk/release/*.apk
+          name: voice-changer-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/**/*.apk
           retention-days: 30
