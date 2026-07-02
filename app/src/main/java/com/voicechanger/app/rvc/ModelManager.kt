@@ -5,54 +5,100 @@ import org.json.JSONObject
 import java.io.File
 
 data class RvcModel(
-    val name:       String,   // display name
-    val onnxPath:   String,   // path to synthesizer .onnx
-    val sampleRate: Int,      // model output sample rate (40000 or 48000)
-    val phoneDim:   Int,      // HuBERT feature dim: 256 (v1) or 768 (v2)
+    val name:       String,
+    val onnxPath:   String,
+    val sampleRate: Int,
+    val phoneDim:   Int,
 )
 
 object ModelManager {
 
     private const val HUBERT_FILE = "hubert.onnx"
+    private const val ASSETS_DIR  = "models"
 
-    /** Root folder on device: /sdcard/Android/data/<pkg>/files/models/ */
+    // ── External storage (user-placed files) ───────────────────────────────
+
     fun modelsDir(context: Context): File =
         File(context.getExternalFilesDir(null), "models").also { it.mkdirs() }
 
-    fun hubertPath(context: Context): String =
-        File(modelsDir(context), HUBERT_FILE).absolutePath
+    // ── Bundled assets ─────────────────────────────────────────────────────
 
-    fun isReady(context: Context): Boolean =
-        File(hubertPath(context)).exists()
+    private fun assetsList(context: Context): Array<String>? =
+        runCatching { context.assets.list(ASSETS_DIR) }.getOrNull()
 
-    /** Scan models dir and return all .onnx files that have a matching .json sidecar. */
+    /** Copy asset to cache dir; ONNX Runtime needs a real file path. */
+    private fun extractAsset(context: Context, assetName: String): String {
+        val out = File(context.cacheDir, "models/$assetName")
+        if (out.exists()) return out.absolutePath
+        out.parentFile?.mkdirs()
+        context.assets.open("$ASSETS_DIR/$assetName").use { i ->
+            out.outputStream().use { i.copyTo(it) }
+        }
+        return out.absolutePath
+    }
+
+    // ── HuBERT ─────────────────────────────────────────────────────────────
+
+    fun hubertPath(context: Context): String {
+        val ext = File(modelsDir(context), HUBERT_FILE)
+        if (ext.exists()) return ext.absolutePath
+        val assets = assetsList(context) ?: return ext.absolutePath
+        return if (HUBERT_FILE in assets) extractAsset(context, HUBERT_FILE)
+               else ext.absolutePath
+    }
+
+    fun isReady(context: Context): Boolean = File(hubertPath(context)).exists()
+
+    // ── Model list (assets + external storage, external wins on conflict) ──
+
     fun listModels(context: Context): List<RvcModel> {
-        val dir = modelsDir(context)
-        return dir.listFiles { f -> f.name.endsWith(".onnx") && f.name != HUBERT_FILE }
-            ?.mapNotNull { onnxFile ->
-                val jsonFile = File(dir, "${onnxFile.nameWithoutExtension}.json")
-                if (!jsonFile.exists()) return@mapNotNull null
-                try {
-                    val j        = JSONObject(jsonFile.readText())
-                    val sr       = j.optInt("sr",         40000)
-                    val phoneDim = j.optInt("phone_dim",  256)
-                    RvcModel(
-                        name       = onnxFile.nameWithoutExtension
-                                         .replace("_", " ")
-                                         .replace("-", " ")
-                                         .split(" ").joinToString(" ") {
-                                             it.replaceFirstChar { c -> c.uppercaseChar() }
-                                         },
-                        onnxPath   = onnxFile.absolutePath,
-                        sampleRate = sr,
-                        phoneDim   = phoneDim,
+        val found = mutableMapOf<String, RvcModel>()
+
+        // 1. Bundled assets
+        assetsList(context)
+            ?.filter { it.endsWith(".onnx") && it != HUBERT_FILE }
+            ?.forEach { onnxName ->
+                val stem     = onnxName.removeSuffix(".onnx")
+                val jsonName = "$stem.json"
+                val assets   = assetsList(context) ?: return@forEach
+                if (jsonName !in assets) return@forEach
+                runCatching {
+                    val j   = JSONObject(context.assets.open("$ASSETS_DIR/$jsonName")
+                                  .bufferedReader().readText())
+                    found[stem] = RvcModel(
+                        name       = displayName(stem),
+                        onnxPath   = extractAsset(context, onnxName),
+                        sampleRate = j.optInt("sr",        40000),
+                        phoneDim   = j.optInt("phone_dim", 256),
                     )
-                } catch (_: Exception) { null }
-            } ?: emptyList()
+                }
+            }
+
+        // 2. External storage (overrides same stem from assets)
+        val dir = modelsDir(context)
+        dir.listFiles { f -> f.name.endsWith(".onnx") && f.name != HUBERT_FILE }
+            ?.forEach { onnxFile ->
+                val stem     = onnxFile.nameWithoutExtension
+                val jsonFile = File(dir, "$stem.json")
+                if (!jsonFile.exists()) return@forEach
+                runCatching {
+                    val j = JSONObject(jsonFile.readText())
+                    found[stem] = RvcModel(
+                        name       = displayName(stem),
+                        onnxPath   = onnxFile.absolutePath,
+                        sampleRate = j.optInt("sr",        40000),
+                        phoneDim   = j.optInt("phone_dim", 256),
+                    )
+                }
+            }
+
+        return found.values.toList()
     }
 
-    fun installPathInstructions(context: Context): String {
-        val dir = modelsDir(context)
-        return "העתק קבצי .onnx ו-.json אל:\n${dir.absolutePath}"
-    }
+    fun installPathInstructions(context: Context): String =
+        "העתק קבצי .onnx ו-.json אל:\n${modelsDir(context).absolutePath}"
+
+    private fun displayName(stem: String) =
+        stem.replace("_", " ").replace("-", " ")
+            .split(" ").joinToString(" ") { it.replaceFirstChar { c -> c.uppercaseChar() } }
 }
