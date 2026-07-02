@@ -1,8 +1,6 @@
 name: Convert RVC models (.pth → .onnx)
 
 on:
-  push:
-    branches: [ "**" ]
   workflow_dispatch:
 
 permissions:
