@@ -38,6 +38,9 @@ on:
           - 'true'
           - 'false'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build APK
@@ -46,6 +49,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download ONNX models from Release (if available)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="rvc-models-latest"
+          DEST="app/src/main/assets/models"
+          mkdir -p "$DEST"
+          if gh release view "$TAG" --repo ${{ github.repository }} > /dev/null 2>&1; then
+            echo "Downloading ONNX models from release $TAG..."
+            gh release download "$TAG" --repo ${{ github.repository }} --dir "$DEST" --clobber
+            echo "Models bundled into APK:"
+            ls -lh "$DEST/"
+          else
+            echo "No release '$TAG' found — building APK without bundled AI models."
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

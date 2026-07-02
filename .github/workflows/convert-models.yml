@@ -16,7 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python 3.10
@@ -60,27 +59,35 @@ jobs:
       - name: Clone RVC source (for architecture code only)
         run: |
           git clone --depth 1 https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI /tmp/rvc_src
-          # Copy only the model architecture files we need
-          cp -r /tmp/rvc_src/lib /tmp/rvc_lib 2>/dev/null || true
-          cp -r /tmp/rvc_src/infer /tmp/rvc_infer 2>/dev/null || true
-          cp /tmp/rvc_src/*.py /tmp/rvc_src_root/ 2>/dev/null || true
 
-      - name: Convert models
+      - name: Convert models to ONNX
         run: |
-          mkdir -p app/src/main/assets/models
+          mkdir -p /tmp/onnx_out
           python scripts/export_rvc_to_onnx.py \
             --rvc-src /tmp/rvc_src \
             --models models/pth/*.pth \
-            --output app/src/main/assets/models
+            --output /tmp/onnx_out
+          echo "Converted files:"
+          ls -lh /tmp/onnx_out/
 
-      - name: Commit converted models
+      - name: Upload ONNX models as GitHub Release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app/src/main/assets/models/
-          if git diff --cached --quiet; then
-            echo "No new models to commit."
-          else
-            git commit -m "Auto-convert RVC models to ONNX [skip ci]"
-            git push
-          fi
+          TAG="rvc-models-latest"
+
+          # Delete old release if exists, then recreate
+          gh release delete "$TAG" --repo ${{ github.repository }} --yes 2>/dev/null || true
+          gh release create "$TAG" \
+            --repo ${{ github.repository }} \
+            --title "RVC ONNX Models" \
+            --notes "Auto-generated ONNX models for in-app AI voice conversion." \
+            --prerelease
+
+          # Upload all files
+          for f in /tmp/onnx_out/*; do
+            echo "Uploading $f..."
+            gh release upload "$TAG" "$f" --repo ${{ github.repository }} --clobber
+          done
+
+          echo "✓ All models uploaded to release $TAG"
